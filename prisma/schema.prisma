@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Article {
+  id          Int      @id @default(autoincrement())
+  title       String   @unique
+  description String?
+  body        String
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  author      User?    @relation(fields: [authorId], references: [id])
+  authorId    Int?
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String?
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  articles  Article[]
+  roomCheckIns RoomCheckIng[]
+}
+
+model ClassRoom {
+  id          Int      @id @default(autoincrement())
+  name       String
+  description String?
+  roomCheckIns   RoomCheckIng[]
+}
+
+enum CheckInActivity {
+  ON_TIME
+  LATE
+}
+model RoomCheckIng {
+  id          Int      @id @default(autoincrement())
+  roomScheduleId    String // Id of the room schedule from external system
+  classRoom   ClassRoom @relation(fields: [classRoomId], references: [id])
+  classRoomId    Int
+
+  user   User @relation(fields: [userId], references: [id])
+  userId    Int
+
+  checkInAt   DateTime @default(now()) @db.Date
+  checkInType  CheckInActivity @default(ON_TIME)
+
+  @@unique([roomScheduleId, classRoomId, userId, checkInAt], name: "unique_check_in_by_user")
+}
+
+model ScheduleRoom {
+  scheduleId    String @id @default(uuid()) @db.Uuid
+  scheduleName  String
+  startTime     String
+  totalMin      Int @default(90)
+}
+
+
