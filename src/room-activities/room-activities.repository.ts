@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DateTime } from 'luxon';
 import { PrismaService } from '../prisma/prisma.service';
+import { RoomCheckIng } from '@prisma/client';
 
 @Injectable()
 export class RoomActivitiesRepository {
@@ -9,7 +10,7 @@ export class RoomActivitiesRepository {
   async findRoomActivities(roomId: number, scheduleId: string, date: Date) {
     const { yesterday, tomorrow } = this.findDates(date.toISOString());
 
-    const result = await this.prisma.roomCheckIng.findMany({
+    const result: RoomCheckIng[] = await this.prisma.roomCheckIng.findMany({
       where: {
         classRoomId: roomId,
         roomScheduleId: scheduleId,

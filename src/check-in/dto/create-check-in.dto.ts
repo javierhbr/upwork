@@ -1,19 +1,9 @@
 import { CheckInActivityType } from './check-in-activity.type';
-import { CheckInInterface } from './check-in.interface';
-import {
-  IsDate,
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MinLength,
-} from 'class-validator';
+import { IsDate, IsEnum, IsNumber, IsOptional, IsUUID } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
-export class CreateCheckInDto implements CheckInInterface {
+export class CreateCheckInDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsDate()

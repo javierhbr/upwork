@@ -21,7 +21,7 @@ export class CheckInService {
   }
 
   async performCheckIn(checkInData: CreateCheckInDto, user: UserAuthDto) {
-    checkInData.checkInAt = DateTime.utc().toJSDate();
+    checkInData.checkInAt = checkInData.checkInAt ?? DateTime.utc().toJSDate();
     this.validateUser(user, checkInData);
     const schedule = await this.findSchedule(checkInData.roomScheduleId);
     this.calculateCheckInType(checkInData, schedule);
@@ -66,7 +66,7 @@ export class CheckInService {
 
     const diffMin = minutesDifference(startScheduleTime, checkInData.checkInAt);
     if (diffMin >= schedule.totalMin) {
-      throw new CheckInException('Cant check  In, your super late');
+      throw new CheckInException('Cant check In, your super late');
     } else if (diffMin >= this.intervalMinutes) {
       checkInData.checkInType = CheckInActivityType.LATE;
     } else {
