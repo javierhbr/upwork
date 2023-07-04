@@ -10,13 +10,13 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   const config = new DocumentBuilder()
-    .setTitle('Javier Benavides BA test ')
+    .setTitle('Javier Benavides BE test ')
     .setDescription('The Javier Benavides API description')
     .setVersion('0.1')
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('open-api', app, document);
 
   await app.listen(3000);
 }

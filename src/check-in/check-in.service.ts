@@ -7,6 +7,7 @@ import { RoomScheduleService } from './room-schedule.service';
 import { ScheduleDetailsDto } from './dto/schedule-details.dto';
 import { minutesDifference } from '../common/dates-utils';
 import { CheckInActivityType } from './dto/check-in-activity.type';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class CheckInService {
@@ -20,7 +21,7 @@ export class CheckInService {
   }
 
   async performCheckIn(checkInData: CreateCheckInDto, user: UserAuthDto) {
-    checkInData.checkInAt = new Date();
+    checkInData.checkInAt = DateTime.utc().toJSDate();
     this.validateUser(user, checkInData);
     const schedule = await this.findSchedule(checkInData.roomScheduleId);
     this.calculateCheckInType(checkInData, schedule);

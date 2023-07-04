@@ -10,18 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Article {
-  id          Int      @id @default(autoincrement())
-  title       String   @unique
-  description String?
-  body        String
-  published   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  author      User?    @relation(fields: [authorId], references: [id])
-  authorId    Int?
-}
-
 model User {
   id        Int       @id @default(autoincrement())
   name      String?
@@ -29,7 +17,6 @@ model User {
   password  String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  articles  Article[]
   roomCheckIns RoomCheckIng[]
 }
 
@@ -53,7 +40,7 @@ model RoomCheckIng {
   user   User @relation(fields: [userId], references: [id])
   userId    Int
 
-  checkInAt   DateTime @default(now()) @db.Date
+  checkInAt   DateTime @default(now())
   checkInType  CheckInActivity @default(ON_TIME)
 
   @@unique([roomScheduleId, classRoomId, userId, checkInAt], name: "unique_check_in_by_user")

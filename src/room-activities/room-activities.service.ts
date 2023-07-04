@@ -9,7 +9,7 @@ export class RoomActivitiesService {
     return await this.roomActivitiesRepository.findRoomActivities(
       activityFilter.roomId,
       activityFilter.scheduleId,
-      activityFilter.date,
+      activityFilter.date ?? new Date(),
     );
   }
 }

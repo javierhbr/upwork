@@ -4,7 +4,6 @@
   "description": "",
   "author": "",
   "private": true,
-  "license": "UNLICENSED",
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build",
@@ -19,7 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prisma:migrate" : "npx prisma migrate dev"
+    "prisma:migrate" : "npx prisma migrate dev",
+    "prisma:reset" : " npx prisma migrate reset"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.5",
@@ -37,12 +37,14 @@
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",
+    "luxon": "^3.3.0",
     "swagger-ui-express": "^4.4.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.1.1",
     "@nestjs/schematics": "^10.0.1",
     "@nestjs/testing": "^10.0.5",
+    "@types/luxon": "^3.3.0",
     "@types/bcrypt": "^5.0.0",
     "@types/express": "^4.17.13",
     "@types/jest": "27.4.1",
