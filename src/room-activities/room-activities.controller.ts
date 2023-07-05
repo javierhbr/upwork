@@ -15,6 +15,7 @@ import {
 } from '@nestjs/swagger';
 import { ActivityFilterDto } from './dto/activity-filter.dto';
 import { CheckInActivityType } from '../check-in/dto/check-in-activity.type';
+import { RoomActivityDto } from './dto/room-activity.dto';
 
 @Controller('activities')
 @ApiTags('activities')
@@ -40,14 +41,9 @@ export class RoomActivitiesController {
     required: false,
     description: 'optional date format yyyy-mm-dd',
   })
-  @ApiQuery({
-    name: 'checkInType',
-    enum: [CheckInActivityType.LATE, CheckInActivityType.ON_TIME],
-    required: false,
-    description: 'ActivityType optional',
-  })
   @ApiOkResponse({
     description: 'Company Custom profile fields',
+    type: [RoomActivityDto],
   })
   async getCurrentActivities(
     @Query(

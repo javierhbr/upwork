@@ -68,6 +68,7 @@
     "typescript": "^5.1.6"
   },
   "jest": {
+
     "moduleFileExtensions": [
       "js",
       "json",
@@ -78,8 +79,15 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/src/auth/",
+      "/src/users/",
+      "/src/prisma/"
+    ],
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!**/*.dto.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

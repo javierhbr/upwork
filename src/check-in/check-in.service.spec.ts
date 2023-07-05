@@ -154,7 +154,7 @@ describe('CheckInService', () => {
     });
 
     it('should handle and log the error if saving check-in data throws an error', async () => {
-      const checkInDate = DateTime.local(2023, 7, 4, 13, 30).toJSDate();
+      const checkInDate = DateTime.local(2023, 7, 4, 9, 20).toJSDate();
       const checkInData: CreateCheckInDto = {
         roomScheduleId: 'schedule-id',
         classRoomId: 100,
@@ -168,15 +168,6 @@ describe('CheckInService', () => {
         email: 'john@example.com',
         name: 'john',
       };
-
-      const errorMock = jest.fn(() => {
-        const error = new Error('Failed to save check-in data');
-        (error as any).code = 'P2002';
-        throw error;
-      });
-
-      // const error = new Error(errorMessage);
-
       const scheduleDetails = {
         scheduleId: 'scheduleId',
         scheduleName: 'scheduleName',
@@ -185,11 +176,14 @@ describe('CheckInService', () => {
       };
 
       scheduleServiceMock.getScheduleDetails.mockResolvedValue(scheduleDetails);
-      checkInRepositoryMock.saveCheckIn.mockImplementation(errorMock);
-
-      const loggerSpy = jest.spyOn(checkInService['logger'], 'error');
-
-      await checkInService.performCheckIn(checkInData, user);
+      checkInRepositoryMock.saveCheckIn.mockImplementation(() => {
+        const error = new Error('Failed to save check-in data');
+        (error as any).code = 'P2002';
+        return Promise.reject(error);
+      });
+      await expect(
+        checkInService.performCheckIn(checkInData, user),
+      ).rejects.toThrowError('User has been checked-in previously');
 
       expect(scheduleServiceMock.getScheduleDetails).toHaveBeenCalledWith(
         checkInData.roomScheduleId,
@@ -197,7 +191,6 @@ describe('CheckInService', () => {
       expect(checkInRepositoryMock.saveCheckIn).toHaveBeenCalledWith(
         checkInData,
       );
-      expect(loggerSpy).toHaveBeenCalledWith('performCheckIn error', errorMock);
     });
   });
 });
