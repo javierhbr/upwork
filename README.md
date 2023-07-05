@@ -12,6 +12,12 @@ A simple backend REST API for a blog built using NestJS, Prisma, PostgreSQL and 
 5. Access the project documentation http://localhost:3000/open-api
 
 
+### Tests
+Run `npm run test:cov`
+
+Check the coverage in this html file : `coverage/lcov-report/index.html`
+
+![img.png](documentation/coverage.png)
 
 ### Setup DB
 
