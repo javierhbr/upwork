@@ -1,195 +1,266 @@
-Here is the translation and step-by-step explanation of the provided solution.
+Here is the translation of the text into English, along with a step-by-step explanation of what the code and concepts are doing.
 
-This solution is designed to build a **Local RAG (Retrieval-Augmented Generation) System** for analyzing call center logs. It uses **Ollama** (for AI models) and **ChromaDB** (for memory) to run entirely on your machine without the cloud.
+### High-Level Concept: Local RAG (Retrieval-Augmented Generation)
 
-The solution is divided into three parts:
+The solution described uses a technique called **RAG**. Instead of teaching the AI new information permanently (like studying for a test), RAG gives the AI a reference book (your data) to look up answers when you ask a question.
 
-1. **The Jupyter Notebook:** For prototyping and understanding the logic.
+Since you are restricted to a **local environment** (no cloud), this approach uses:
+
+1. **ChromaDB:** A database that stores your data as numbers (vectors).
     
-2. **Production Scripts:** Python files ready for real-world use.
+2. **Ollama:** A local AI model (like Llama 3) that runs on your computer.
     
-3. **Repository Structure:** How to organize files for a professional project.
+
+![Image of Retrieval Augmented Generation architecture](https://encrypted-tbn2.gstatic.com/licensed-image?q=tbn:ANd9GcRVNX5r9oHhCrNdN2gWz2rv1TDlHYNyBv7iMavVZnhzDAB0uBKrCXE13fjyiXrjkQS26pRcFdu4i7QKj6GutQn5DFi6dk_jWTOlZSCutIo9PU8RAGA)
+
+Getty Images
+
+---
+
+### Step-by-Step Guide & Translation
+
+#### 1. The Strategy
+
+Translated Text:
+
+"This is an excellent use case for a local RAG (Retrieval-Augmented Generation) architecture. Given your strict restrictions (no cloud, local only, access to a vector database), you do not need to 'train' (fine-tune) the model by modifying its weights, which is expensive and slow.
+
+Instead, you will use the **Vector Database as the 'long-term memory'** of past patterns. The logical flow will be:
+
+1. **Index:** Convert your historical logs (CSV) into vectors and save them.
+    
+2. **Retrieve:** When a new case arrives, search for the most similar historical cases (where you already know what happened).
+    
+3. **Infer:** Pass the new case + the retrieved similar cases to the LLM (Ollama) and ask it to detect the failure pattern."
+    
+
+**Explanation:**
+
+- **Why not Fine-Tuning?** Fine-tuning changes the "brain" of the AI. It takes a lot of computing power.
+    
+- **Why RAG?** RAG keeps the AI generic but gives it your specific data as context for every question. It is faster, cheaper, and safer for local data.
     
 
 ---
 
-### Part 1: The Jupyter Notebook (`analisis_llamadas.ipynb`)
+#### 2. Prerequisites
 
-This notebook is the "laboratory" where we build the logic step-by-step.
+Translated Text:
 
-#### **Cell 1 & 2: Setup and Installation**
+"You will need to install the following libraries in your local environment:"
 
-**Concept:** We install the necessary tools.
+Bash
 
-- `pandas`: To handle the CSV data table.
+```
+pip install pandas chromadb sentence-transformers ollama
+```
+
+**Explanation:**
+
+- `pandas`: Used to open and read your Excel/CSV files.
     
-- `chromadb`: The local database to store "vectors" (mathematical representations of text).
+- `chromadb`: The "brain's library." It stores your data in a way that allows the AI to search by _meaning_, not just keywords.
     
-- `scikit-learn`: For the K-Means clustering algorithm.
+- `sentence-transformers`: A tool that translates text into numbers (embeddings) so the computer can compare them mathmatically.
     
-- `ollama`: To communicate with the local AI models.
+- `ollama`: The tool that runs the AI model (Llama 3, Mistral) on your laptop.
     
 
-#### **Cell 3 & 4: Loading Data**
+---
 
-**Concept:** We load the raw data (`llamadas.csv`) into a dataframe.
+#### 3. Step 1: Data Preparation
 
-#### **Cell 5: Cleaning and Feature Engineering**
+Translated Text:
 
-Concept: The AI needs to know if a call was a "Success" or a "Failure" to learn patterns.
+"First, we must transform the rows of your CSV into a narrative format that the model can understand semantically."
 
-Explanation: We define a function label(row) that looks at columns like success, transferred, or hangup and assigns a single text label (e.g., "fail_user_hangup"). This creates a clean "Target" variable.
+Python
 
-#### **Cell 6: Semantic Text Conversion**
+```
+import pandas as pd
 
-Concept: Vector databases store text, not Excel rows.
+# 1. Load the CSV
+# Assuming your CSV has: call_id, steps_history, final_status, error_code, customer_segment
+df = pd.read_csv('call_center_data.csv')
 
-Explanation: The function to_text(row) takes a structured row (e.g., Step 1=OK, Step 2=Error 500) and converts it into a narrative paragraph: "CallID: 101 | Result: Fail. Step 1=OK; Step 2=Error 500...". This allows the AI to "read" the row as a story.
+# 2. Create a "Context" column
+# We convert the structured row into descriptive text.
+# This helps the model find semantic patterns.
+def create_context(row):
+    return f"""
+    Interaction ID: {row['call_id']}.
+    Step Sequence: {row['steps_history']}.
+    Final Status: {row['final_status']}.
+    Error Code: {row['error_code']}.
+    Note: {row.get('notes', 'No additional notes')}
+    """
 
-#### **Cell 7: Generating Embeddings**
+df['text_for_embedding'] = df.apply(create_context, axis=1)
 
-Concept: Translating text into numbers.
+# Separate data: Success vs Errors (for the model to compare)
+# Although for the Vector DB it is better to insert everything to have full context.
+documents = df['text_for_embedding'].tolist()
+ids = df['call_id'].astype(str).tolist()
+metadatas = df[['final_status', 'error_code']].to_dict(orient='records')
 
-Explanation: We use ollama.embeddings with the model nomic-embed-text. This turns the paragraph created in Cell 6 into a list of numbers (a vector). Similar calls will have mathematically similar numbers.
-
-#### **Cell 8: Local Vector Database (ChromaDB)**
-
-Concept: Storing the "memories."
+print(f"Data prepared: {len(documents)} records.")
+```
 
 Explanation:
 
-1. We initialize a local Chroma client.
-    
-2. We create a collection named "calls".
-    
-3. We `.add()` the IDs, text, and vectors. Now the data is searchable by meaning.
-    
+The AI works better with sentences than with Excel cells. This code takes a row like [101, Error, 503] and turns it into a paragraph: "Interaction 101 resulted in an Error with code 503." This helps the AI understand the story of the call.
 
-#### **Cell 9: Clustering (K-Means)**
+---
 
-Concept: Finding hidden groups.
+#### 4. Step 2: Creating the Vector Database
 
-Explanation: We use K-Means to group the vectors into 5 clusters. The AI might discover that "Cluster 1" contains mostly calls that failed due to payment APIs, even if you didn't explicitly label them that way.
+Translated Text:
 
-#### **Cell 10: The Advanced Analysis Function (The Core Logic)**
+"Here is where we 'save the patterns.' We will use sentence-transformers to create high-quality embeddings locally and ChromaDB to save them."
 
-Concept: This function performs the RAG workflow.
+Python
 
-Step-by-Step flow of the code:
+```
+import chromadb
+from chromadb.utils import embedding_functions
 
-1. **Embed:** It takes a _new_ call and converts it to a vector.
+# 1. Configure the local ChromaDB client (saved in a local folder)
+chroma_client = chromadb.PersistentClient(path="./my_local_vectordb")
+
+# 2. Configure the local embedding function
+# 'all-MiniLM-L6-v2' is small, fast, and very good for semantic clustering.
+sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+    model_name="all-MiniLM-L6-v2" 
+)
+
+# 3. Create or connect to the collection
+collection = chroma_client.get_or_create_collection(
+    name="call_patterns",
+    embedding_function=sentence_transformer_ef
+)
+
+# 4. Inject the data (This is done only once or incrementally)
+# Chroma handles tokenization and vectorization automatically with the function defined above.
+collection.upsert(
+    documents=documents,
+    ids=ids,
+    metadatas=metadatas
+)
+
+print("Vector database updated locally.")
+```
+
+**Explanation:**
+
+- **Embeddings:** The code takes the paragraphs created in Step 1 and turns them into long lists of numbers (vectors).
     
-2. **Search:** It asks ChromaDB: "Give me the 10 most similar calls from history."
-    
-3. **Statistics:** It calculates the failure rate of specific steps within those 10 similar calls (e.g., "In similar cases, Step 3 failed 80% of the time").
-    
-4. **Prompting:** It creates a prompt for **Llama 3** containing:
-    
-    - The historical similar cases.
-        
-    - The calculated failure stats.
-        
-    - The new call details.
-        
-5. **Inference:** It asks Llama 3 to act as an expert and diagnose the root cause based on that evidence.
+- **Upsert:** This saves those numbers into a folder on your computer. Now, you have a searchable database of call history.
     
 
 ---
 
-### Part 2: Production Scripts
+#### 5. Step 3: Pattern Detection Logic (The "Brain")
 
-These scripts take the logic from the notebook and make it robust for actual usage (error handling, batch processing, logging).
+Translated Text:
 
-#### **1. `analyzer_service.py` (The Backend Logic)**
+"Now we create the function that uses Ollama. This function takes a 'new case' (e.g., a call that failed today), searches the Vector DB for what happened in similar previous cases, and asks Ollama to diagnose it."
 
-This is a reusable Python class. You don't run this directly; other scripts import it.
+Python
 
-- **Class `CallAnalyzer`:** manages the connection to ChromaDB and Ollama.
+```
+import ollama
+
+def analyze_incident(new_case_text):
     
-- **`embed_text`:** Handles retries (if Ollama glitches, it tries again 3 times).
+    # 1. SEMANTIC SEARCH (RAG)
+    # We look for the 5 historical cases most similar to this new problem
+    results = collection.query(
+        query_texts=[new_case_text],
+        n_results=5
+    )
     
-- **`analyze_advanced`:** The same logic as Cell 10 in the notebook but cleaner and with error logging.
+    retrieved_context = "\n".join(results['documents'][0])
     
-- **`add_or_update_records`:** Ensures you don't create duplicate entries in your database.
+    # 2. PROMPT CONSTRUCTION
+    # We give the LLM the new case + the "memory" of similar cases.
+    prompt = f"""
+    You are an expert analyst in IVR and user experience. 
     
-
-#### **2. `regenerate_embeddings.py` (The Data Ingestion)**
-
-You run this script to "teach" the system new data.
-
-- **What it does:** It reads your CSV, generates embeddings in batches (e.g., 64 at a time) to avoid crashing memory, and saves them to ChromaDB.
+    Your goal is to identify the ROOT CAUSE of a failure in a recent interaction based on historical patterns.
     
-- **Usage:** `python regenerate_embeddings.py --csv my_data.csv --overwrite`
+    --- SIMILAR HISTORICAL INFORMATION (Knowledge Base) ---
+    {retrieved_context}
+    ------------------------------------------------------------
     
+    --- NEW CASE TO ANALYZE ---
+    {new_case_text}
+    -----------------------------
+    
+    INSTRUCTIONS:
+    1. Compare the 'NEW CASE' with the 'HISTORICAL INFORMATION'.
+    2. Identify if there is a common pattern in the steps prior to the error (e.g., it always fails after step X).
+    3. Explain why this case probably failed (e.g., Hangup due to frustration, technical error, forced transfer).
+    4. Be concise and technical.
+    
+    ANALYSIS:
+    """
+    
+    # 3. CALL TO OLLAMA (Local)
+    # Ensure you have 'ollama serve' running and have done 'ollama pull llama3' (or mistral)
+    response = ollama.chat(model='llama3', messages=[
+        {'role': 'user', 'content': prompt},
+    ])
+    
+    return response['message']['content']
+```
 
-#### **3. `batch_analysis_pipeline.py` (The Processor)**
+Explanation:
 
-You run this script when you have 1,000 new calls and want to diagnose them all at once.
+This is the core logic.
 
-- **What it does:** It uses `joblib` to run in parallel (using multiple CPU cores). It processes the new calls and outputs a `parquet` or CSV file with the AI's diagnosis for every single row.
+1. **Input:** You give it a new error.
+    
+2. **Retrieval:** The database finds 5 past errors that look mathematically similar.
+    
+3. **Prompting:** It creates a prompt for the AI: "Here are 5 old errors that look like this new one. Based on the old ones, why did this new one happen?"
     
 
 ---
 
-### Part 3: The Mini-Repo Structure
+#### 6. Step 4: Execution (Testing)
 
-This section provides a clean folder structure to organize the project.
+Translated Text:
 
-#### **Directory Tree**
+"Let's assume you have a new call that failed and you want to know why, based on what the system 'learned' (indexed) from your CSV."
 
-Plaintext
+Python
 
 ```
-selfservice-analyzer/
-│
-├── requirements.txt       # List of python libraries to install
-├── Makefile               # Shortcuts for terminal commands
-├── data/                  # Folder to hold your CSVs
-│   └── llamadas_sinteticas.csv
-│
-└── src/                   # Source code folder
-    ├── common.py          # Shared functions (setup DB, etc.)
-    ├── generate_embeddings.py  # Script to load data
-    ├── batch_analyzer.py       # Script to analyze many calls
-    └── analyze_one.py          # Script to test a single call
+# Example of a new case coming in today
+new_case = """
+Interaction ID: NEW_999.
+Step Sequence: Start -> Authentication -> Check Balance -> Payments Menu -> ERROR_API_TIMEOUT.
+Final Status: Error.
+Note: Client hung up after 5 seconds of silence.
+"""
+
+# Run the analysis
+analysis = analyze_incident(new_case)
+
+print("### Pattern Analysis Result ###")
+print(analysis)
 ```
 
-#### **Makefile Translation**
+Explanation:
 
-A Makefile helps you run long commands with short keywords.
+This is how you actually use the tool. You type in the details of the problem, run the script, and the AI gives you an analysis based on your historical data.
 
-- `make install`: Runs pip install.
-    
-- `make embeddings`: Runs the script to ingest data.
-    
-- `make batch`: Runs the bulk analysis.
-    
-- `make one`: Runs a single test case.
-    
+### Summary
 
-#### **Simplified Source Scripts (`src/`)**
+The text concludes by explaining why this is perfect for you:
 
-These are simplified versions of the production scripts for easier reading:
-
-- **`common.py`:** Contains the shared `embed` function and DB connection so you don't repeat code.
+1. **Real Patterns:** It uses _your_ actual data to find specific problems (like a recurring API failure in the "Payments" menu).
     
-- **`batch_analyzer.py`:** Loops through your CSV, asks the database for similar cases, and saves the results to a JSON file.
+2. **100% Local:** Data never leaves your machine.
     
-- **`analyze_one.py`:** A simple test script. You hardcode a call pattern in the script, run it, and watch the AI explain why it failed in the terminal.
-    
-
-#### **Synthetic Data (`llamadas_sinteticas.csv`)**
-
-This is a fake dataset provided so you can copy/paste it and test the code immediately without needing your real data yet. It contains columns for step statuses (`ok`, `error_xx`), duration, and final results.
-
-### Summary of Next Steps for You:
-
-1. **Install requirements:** `pip install pandas chromadb scikit-learn ollama tqdm`.
-    
-2. **Pull models:** Run `ollama pull llama3` and `ollama pull nomic-embed-text` in your terminal.
-    
-3. **Copy the Repo:** Create the folder structure and files as shown in "Part 3".
-    
-4. **Run Ingestion:** Run `make embeddings` to fill your local database.
-    
-5. **Test:** Run `make one` to see the AI diagnose a fake failure.
+3. **No Training:** You don't need to spend days training a model. Just upload the CSV and it works immediately.
