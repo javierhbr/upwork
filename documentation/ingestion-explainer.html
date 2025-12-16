@@ -1,0 +1,3400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How We Capture Call Recordings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #6366F1;
+            --secondary: #059669;
+            --warning: #D97706;
+            --danger: #DC2626;
+            --bg-light: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --bg-card-hover: #F1F5F9;
+            --text-primary: #1E293B;
+            --text-secondary: #475569;
+            --text-muted: #94A3B8;
+            --border-color: #E2E8F0;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            --gradient-3: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--bg-light);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle at 20% 80%, rgba(79, 70, 229, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.06) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.05) 0%, transparent 40%);
+            animation: bgMove 20s ease-in-out infinite;
+        }
+
+        @keyframes bgMove {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(1deg); }
+            66% { transform: translate(-20px, 20px) rotate(-1deg); }
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 60px 20px 40px;
+            position: relative;
+        }
+
+        header h1 {
+            font-family: 'Quicksand', sans-serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Navigation tabs */
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 0 20px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .nav-tab {
+            padding: 14px 28px;
+            border-radius: 50px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .nav-tab:hover {
+            border-color: var(--primary-light);
+            color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+        }
+
+        .nav-tab.active {
+            background: var(--gradient-1);
+            border-color: transparent;
+            color: white;
+            box-shadow: 0 8px 30px rgba(79, 70, 229, 0.3);
+        }
+
+        .nav-tab .icon {
+            font-size: 1.3rem;
+        }
+
+        /* Main content */
+        .content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Analogy section */
+        .analogy-card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .analogy-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-1);
+        }
+
+        .analogy-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .analogy-card h2 {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1.8rem;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .analogy-card p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        /* Flow visualization */
+        .flow-container {
+            position: relative;
+            padding: 40px 0;
+        }
+
+        .flow-title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .flow-title h2 {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .flow-title .badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background: rgba(79, 70, 229, 0.2);
+            color: var(--primary-light);
+        }
+
+        .badge-secondary {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        /* Interactive flow steps */
+        .flow-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+            padding: 24px;
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 2px solid transparent;
+            transition: all 0.4s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+
+        .flow-step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--step-color, var(--primary));
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+
+        .flow-step:hover {
+            border-color: var(--step-color, var(--primary));
+            transform: translateX(8px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .flow-step:hover::before {
+            opacity: 1;
+            width: 6px;
+        }
+
+        .flow-step.active {
+            border-color: var(--step-color, var(--primary));
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .step-number {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: var(--step-color, var(--gradient-1));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            color: white;
+        }
+
+        .step-content h3 {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .step-content p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .step-detail {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, margin-top 0.4s ease;
+            margin-top: 0;
+        }
+
+        .flow-step.active .step-detail {
+            max-height: 200px;
+            margin-top: 16px;
+        }
+
+        .step-detail-content {
+            padding: 16px;
+            background: rgba(79, 70, 229, 0.05);
+            border-radius: 12px;
+            border-left: 3px solid var(--step-color, var(--primary));
+        }
+
+        .step-detail-content p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        /* Connector lines */
+        .connector {
+            width: 2px;
+            height: 30px;
+            background: linear-gradient(to bottom, var(--primary-light), transparent);
+            margin-left: 51px;
+            opacity: 0.3;
+        }
+
+        /* Stats cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 28px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+            border-color: var(--primary-light);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .stat-value {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+
+        /* Comparison section */
+        .comparison-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin: 40px 0;
+        }
+
+        .comparison-card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 32px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .comparison-card.path-1 {
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .comparison-card.path-1::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-2);
+        }
+
+        .comparison-card.path-2 {
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .comparison-card.path-2::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-3);
+        }
+
+        .comparison-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+        }
+
+        .comparison-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .comparison-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+        }
+
+        .path-1 .comparison-icon {
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .path-2 .comparison-icon {
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .comparison-title h3 {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1.4rem;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        .comparison-title span {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .comparison-list {
+            list-style: none;
+        }
+
+        .comparison-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+        }
+
+        .comparison-list li:last-child {
+            border-bottom: none;
+        }
+
+        .comparison-list .check {
+            color: var(--secondary);
+        }
+
+        .comparison-list .time {
+            color: var(--warning);
+        }
+
+        /* Disclaimer section */
+        .disclaimer-card {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(239, 68, 68, 0.05) 100%);
+            border: 2px solid rgba(245, 158, 11, 0.3);
+            border-radius: 24px;
+            padding: 32px;
+            margin: 40px 0;
+        }
+
+        .disclaimer-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .disclaimer-icon {
+            font-size: 2.5rem;
+        }
+
+        .disclaimer-header h3 {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1.5rem;
+            color: var(--warning);
+        }
+
+        .disclaimer-content p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 16px;
+        }
+
+        .disclaimer-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .highlight-box {
+            background: rgba(245, 158, 11, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid var(--warning);
+        }
+
+        .highlight-box h4 {
+            color: var(--warning);
+            margin-bottom: 8px;
+            font-family: 'Quicksand', sans-serif;
+        }
+
+        /* Animation visualization */
+        .animation-container {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 40px;
+            margin: 40px 0;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .animation-scene {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 700px;
+            margin: 40px auto;
+            position: relative;
+        }
+
+        .animation-node {
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            position: relative;
+            z-index: 2;
+            color: white;
+        }
+
+        .node-ocp {
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            box-shadow: 0 8px 30px rgba(79, 70, 229, 0.3);
+        }
+
+        .node-system {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            box-shadow: 0 8px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        .node-storage {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.3);
+        }
+
+        .animation-node .icon {
+            font-size: 2rem;
+        }
+
+        .animation-path {
+            flex: 1;
+            height: 4px;
+            background: rgba(79, 70, 229, 0.15);
+            position: relative;
+            margin: 0 -10px;
+        }
+
+        .animation-packet {
+            width: 24px;
+            height: 24px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: movePacket 3s ease-in-out infinite;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+        }
+
+        @keyframes movePacket {
+            0% { left: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { left: calc(100% - 24px); opacity: 0; }
+        }
+
+        .animation-label {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        /* Summary section */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+
+        .summary-card:hover {
+            border-color: var(--primary-light);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        .summary-card .icon {
+            font-size: 2rem;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .summary-card h4 {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .summary-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-tabs {
+                gap: 8px;
+            }
+            
+            .nav-tab {
+                padding: 12px 20px;
+                font-size: 0.9rem;
+            }
+            
+            .flow-step {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .connector {
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            .animation-scene {
+                flex-direction: column;
+                gap: 40px;
+            }
+            
+            .animation-path {
+                width: 4px;
+                height: 60px;
+                margin: -10px 0;
+            }
+            
+            .animation-packet {
+                animation: movePacketVertical 3s ease-in-out infinite;
+            }
+            
+            @keyframes movePacketVertical {
+                0% { top: 0; left: 50%; transform: translate(-50%, 0); opacity: 0; }
+                10% { opacity: 1; }
+                90% { opacity: 1; }
+                100% { top: calc(100% - 24px); left: 50%; transform: translate(-50%, 0); opacity: 0; }
+            }
+        }
+
+        /* Pizza analogy special styling */
+        .pizza-analogy {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
+            border: 2px solid rgba(239, 68, 68, 0.2);
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+
+        .pizza-analogy .icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .pizza-analogy p {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* ============================================
+           VISUAL FLOW DIAGRAMS (Path 1 & Path 2)
+           ============================================ */
+        .visual-flow-container {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 40px 30px;
+            margin: 30px 0 40px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .visual-flow-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .path1-flow::before {
+            background: var(--gradient-2);
+        }
+
+        .path2-flow::before {
+            background: var(--gradient-3);
+        }
+
+        .visual-flow-title {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1.6rem;
+            text-align: center;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .visual-flow-subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-bottom: 40px;
+        }
+
+        .visual-flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            padding: 20px 0;
+            overflow-x: auto;
+        }
+
+        .flow-node {
+            width: 90px;
+            height: 90px;
+            border-radius: 22px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            position: relative;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+            color: white;
+        }
+
+        .flow-node:hover {
+            transform: scale(1.08);
+        }
+
+        .flow-node .node-icon {
+            font-size: 1.8rem;
+        }
+
+        .flow-node .node-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            transform: translate(-50%, -50%);
+            border-radius: 22px;
+            opacity: 0.3;
+            filter: blur(20px);
+            z-index: -1;
+        }
+
+        /* Path 1 Node Colors */
+        .node-call {
+            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+        }
+        .node-call .node-glow { background: #6366F1; }
+
+        .node-ocp {
+            background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%);
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+        }
+        .node-ocp .node-glow { background: #8B5CF6; }
+
+        .node-api {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+        }
+        .node-api .node-glow { background: #10B981; }
+
+        .node-storage {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.4);
+        }
+        .node-storage .node-glow { background: #F59E0B; }
+
+        /* Path 2 Node Colors */
+        .node-scanner {
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+        }
+        .node-scanner .node-glow { background: #3B82F6; }
+
+        .node-stepfn {
+            background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+        }
+        .node-stepfn .node-glow { background: #8B5CF6; }
+
+        .node-ocp-export {
+            background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);
+            box-shadow: 0 8px 30px rgba(236, 72, 153, 0.4);
+        }
+        .node-ocp-export .node-glow { background: #EC4899; }
+
+        .node-download {
+            background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
+            box-shadow: 0 8px 30px rgba(20, 184, 166, 0.4);
+        }
+        .node-download .node-glow { background: #14B8A6; }
+
+        .node-storage-final {
+            background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+            box-shadow: 0 8px 30px rgba(34, 197, 94, 0.4);
+        }
+        .node-storage-final .node-glow { background: #22C55E; }
+
+        /* Connectors */
+        .flow-connector {
+            width: 80px;
+            height: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .connector-line {
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(79, 70, 229, 0.15) 0%, rgba(79, 70, 229, 0.3) 50%, rgba(79, 70, 229, 0.15) 100%);
+            border-radius: 2px;
+        }
+
+        .connector-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.6);
+        }
+
+        .dot-1 { animation: moveDot 2.5s ease-in-out infinite; }
+        .dot-2 { animation: moveDot 2.5s ease-in-out infinite 0.4s; }
+        .dot-2b { animation: moveDot 2.5s ease-in-out infinite 0.6s; }
+        .dot-3 { animation: moveDot 2.5s ease-in-out infinite 0.8s; }
+        .dot-4 { animation: moveDot 2.5s ease-in-out infinite 1.0s; }
+        .dot-5 { animation: moveDot 2.5s ease-in-out infinite 1.2s; }
+        .dot-6 { animation: moveDot 2.5s ease-in-out infinite 1.4s; }
+
+        .dot-slow {
+            animation-duration: 4s !important;
+        }
+
+        @keyframes moveDot {
+            0% { left: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { left: calc(100% - 12px); opacity: 0; }
+        }
+
+        .connector-label {
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Polling indicator for Path 2 */
+        .connector-polling {
+            position: relative;
+        }
+
+        .polling-indicator {
+            position: absolute;
+            bottom: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(245, 158, 11, 0.15);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            color: var(--warning);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .polling-indicator span {
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Time badge */
+        .flow-time-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 40px;
+            padding: 12px 24px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 50px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+            color: var(--secondary);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .flow-time-badge.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        .time-icon {
+            font-size: 1.2rem;
+        }
+
+        /* Path 2 diagram specific adjustments */
+        .path2-diagram .flow-connector {
+            width: 60px;
+        }
+
+        /* ============================================
+           PATH 2 DETAILED DIAGRAM STYLES
+           ============================================ */
+        .path2-phase {
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .phase-label {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--warning);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .phase-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            flex-wrap: wrap;
+        }
+
+        /* Node badges */
+        .node-badge {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.95);
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.65rem;
+            white-space: nowrap;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .node-badge.warning {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.4);
+            color: var(--warning);
+        }
+
+        .node-badge.success {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.4);
+            color: var(--secondary);
+        }
+
+        /* Phase-specific node colors */
+        .node-cron-trigger {
+            background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);
+            box-shadow: 0 8px 30px rgba(236, 72, 153, 0.4);
+        }
+        .node-cron-trigger .node-glow { background: #EC4899; }
+
+        .node-polling-lambda {
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+        }
+        .node-polling-lambda .node-glow { background: #3B82F6; }
+
+        .node-dynamodb-check {
+            background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+        }
+        .node-dynamodb-check .node-glow { background: #8B5CF6; }
+
+        .node-sfn-start, .node-sfn-parallel, .node-sfn-export {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.4);
+        }
+        .node-sfn-start .node-glow, .node-sfn-parallel .node-glow, .node-sfn-export .node-glow { background: #F59E0B; }
+
+        /* SQS Node */
+        .node-sqs {
+            background: linear-gradient(135deg, #FF6B6B 0%, #EE5A5A 100%);
+            box-shadow: 0 8px 30px rgba(255, 107, 107, 0.4);
+            position: relative;
+            overflow: visible;
+        }
+        .node-sqs .node-glow { background: #FF6B6B; }
+
+        .sqs-messages {
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .sqs-msg {
+            width: 12px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 2px;
+            animation: sqsQueue 2s ease-in-out infinite;
+        }
+
+        .sqs-msg:nth-child(1) { animation-delay: 0s; }
+        .sqs-msg:nth-child(2) { animation-delay: 0.3s; }
+        .sqs-msg:nth-child(3) { animation-delay: 0.6s; }
+
+        @keyframes sqsQueue {
+            0%, 100% { opacity: 0.4; transform: translateX(0); }
+            50% { opacity: 1; transform: translateX(3px); }
+        }
+
+        /* Node sublabel for multi-line text */
+        .node-sublabel {
+            font-size: 0.7rem;
+            opacity: 0.9;
+            margin-top: -4px;
+        }
+
+        .node-polling-lambda-send {
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+        }
+        .node-polling-lambda-send .node-glow { background: #3B82F6; }
+
+        .node-ocp-export, .node-ocp-status {
+            background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+        }
+        .node-ocp-export .node-glow, .node-ocp-status .node-glow { background: #6366F1; }
+
+        .node-eventbridge-wait {
+            background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
+            box-shadow: 0 8px 30px rgba(20, 184, 166, 0.4);
+        }
+        .node-eventbridge-wait .node-glow { background: #14B8A6; }
+
+        .node-puller {
+            background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+            box-shadow: 0 8px 30px rgba(239, 68, 68, 0.4);
+        }
+        .node-puller .node-glow { background: #EF4444; }
+
+        .node-metadata-lambda, .node-store-metadata {
+            background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
+            box-shadow: 0 8px 30px rgba(6, 182, 212, 0.4);
+        }
+        .node-metadata-lambda .node-glow, .node-store-metadata .node-glow { background: #06B6D4; }
+
+        .node-fargate, .node-process-file {
+            background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+        }
+        .node-fargate .node-glow, .node-process-file .node-glow { background: #8B5CF6; }
+
+        .node-callback {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+        }
+        .node-callback .node-glow { background: #10B981; }
+
+        .node-dynamodb-final {
+            background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+        }
+        .node-dynamodb-final .node-glow { background: #8B5CF6; }
+
+        .node-s3-final {
+            background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+            box-shadow: 0 8px 30px rgba(34, 197, 94, 0.5);
+        }
+        .node-s3-final .node-glow { background: #22C55E; }
+
+        /* Polling Loop Styles */
+        .phase-polling {
+            background: rgba(239, 68, 68, 0.03);
+            border: 1px dashed rgba(239, 68, 68, 0.3);
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .polling-loop-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .polling-loop-visual {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .polling-arrows {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .polling-arrow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(79, 70, 229, 0.05);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            position: relative;
+        }
+
+        .arrow-dot-polling {
+            width: 8px;
+            height: 8px;
+            background: #EF4444;
+            border-radius: 50%;
+            animation: pulseDot 1.5s ease-in-out infinite;
+        }
+
+        .arrow-dot-polling.delay {
+            animation-delay: 0.75s;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+        }
+
+        .polling-decision {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .decision-box {
+            background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
+            padding: 12px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #78350F;
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+        }
+
+        .decision-icon {
+            font-size: 1.2rem;
+        }
+
+        .decision-paths {
+            display: flex;
+            gap: 20px;
+        }
+
+        .decision-path {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 16px 20px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            min-width: 160px;
+        }
+
+        .path-not-ready {
+            background: rgba(239, 68, 68, 0.08);
+            border: 2px solid rgba(239, 68, 68, 0.25);
+        }
+
+        .path-not-ready .path-label {
+            color: #DC2626;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .path-not-ready .path-arrow {
+            color: #DC2626;
+            font-weight: 600;
+        }
+
+        .path-ready {
+            background: rgba(16, 185, 129, 0.08);
+            border: 2px solid rgba(16, 185, 129, 0.25);
+        }
+
+        .path-ready .path-label {
+            color: #059669;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .path-ready .path-arrow {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        .polling-note {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: var(--warning);
+        }
+
+        .note-icon {
+            font-size: 1.2rem;
+        }
+
+        /* Enhanced decision paths */
+        .path-action {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(79, 70, 229, 0.05);
+            border-radius: 10px;
+        }
+
+        .action-icon {
+            font-size: 1.5rem;
+        }
+
+        .action-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .action-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        .action-desc {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .path-arrow-loop, .path-arrow-continue {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+
+        .path-arrow-loop {
+            color: #DC2626;
+        }
+
+        .path-arrow-loop span:first-child {
+            animation: loopBounce 1s ease-in-out infinite;
+        }
+
+        @keyframes loopBounce {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-5px); }
+        }
+
+        .path-arrow-continue {
+            color: #059669;
+        }
+
+        .path-arrow-continue span:first-child {
+            animation: continuePulse 1s ease-in-out infinite;
+        }
+
+        @keyframes continuePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .loop-label, .continue-label {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        /* Polling flow detail boxes */
+        .polling-flow-detail {
+            display: flex;
+            gap: 20px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .flow-detail-item {
+            flex: 1;
+            min-width: 280px;
+            max-width: 400px;
+            padding: 20px;
+            border-radius: 16px;
+            background: var(--bg-card);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        }
+
+        .retry-detail {
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-left: 4px solid #EF4444;
+        }
+
+        .complete-detail {
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-left: 4px solid #10B981;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .detail-icon {
+            font-size: 1.3rem;
+        }
+
+        .detail-title {
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+
+        .detail-flow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .mini-node {
+            padding: 8px 12px;
+            background: rgba(79, 70, 229, 0.08);
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .mini-arrow {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .highlight-eventbridge {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(236, 72, 153, 0.08) 100%);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            color: #DB2777;
+        }
+
+        .highlight-callback {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #059669;
+        }
+
+        .highlight-sfn {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #D97706;
+        }
+
+        .detail-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        /* Parallel Execution Styles */
+        .parallel-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .parallel-header {
+            margin-bottom: 10px;
+        }
+
+        .parallel-branches {
+            display: flex;
+            align-items: flex-start;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .parallel-branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            min-width: 140px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+
+        .branch-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .branch-arrow {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            animation: bounceDown 1.5s ease-in-out infinite;
+        }
+
+        @keyframes bounceDown {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+
+        .parallel-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            font-weight: 300;
+            opacity: 0.5;
+        }
+
+        .branch-metadata {
+            border-color: rgba(6, 182, 212, 0.3);
+        }
+
+        .branch-download {
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        /* Completion flow */
+        .completion-flow {
+            background: rgba(16, 185, 129, 0.03);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.15);
+        }
+
+        /* Responsive for detailed Path 2 */
+        @media (max-width: 768px) {
+            .phase-flow {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .phase-flow .flow-connector {
+                transform: rotate(90deg);
+                width: 60px;
+                margin: 10px 0;
+            }
+            
+            .polling-loop-visual {
+                flex-direction: column;
+            }
+            
+            .polling-arrows {
+                flex-direction: row;
+            }
+            
+            .decision-paths {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .decision-path {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .parallel-branches {
+                flex-direction: column;
+            }
+            
+            .parallel-divider {
+                transform: rotate(90deg);
+            }
+            
+            .polling-flow-detail {
+                flex-direction: column;
+            }
+            
+            .flow-detail-item {
+                max-width: 100%;
+            }
+            
+            .detail-flow {
+                gap: 5px;
+            }
+            
+            .mini-node {
+                padding: 6px 10px;
+                font-size: 0.7rem;
+            }
+        }
+
+        /* Responsive for visual diagrams */
+        @media (max-width: 900px) {
+            .visual-flow-diagram {
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+            
+            .flow-connector {
+                display: none;
+            }
+            
+            .flow-node {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .visual-flow-container {
+                padding: 30px 20px;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .visual-flow-diagram {
+                flex-direction: column;
+            }
+            
+            .flow-node {
+                width: 100px;
+                height: 100px;
+            }
+        }
+
+        /* ============================================
+           COMPLETE ARCHITECTURE DIAGRAM
+           ============================================ */
+        .architecture-diagram-container {
+            background: var(--bg-card);
+            border-radius: 28px;
+            padding: 40px 30px;
+            margin: 50px 0;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .architecture-diagram-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #10B981 0%, #6366F1 50%, #F59E0B 100%);
+        }
+
+        .arch-title {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1.8rem;
+            text-align: center;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .arch-subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-bottom: 40px;
+        }
+
+        .arch-wrapper {
+            display: grid;
+            grid-template-columns: 1fr auto 1.5fr;
+            gap: 20px;
+            align-items: stretch;
+            min-height: 500px;
+        }
+
+        /* Platform containers */
+        .arch-platform {
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .platform-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .platform-icon {
+            font-size: 1.3rem;
+        }
+
+        .ocp-platform {
+            background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0.03) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .ocp-header {
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+            color: #4F46E5;
+        }
+
+        .aws-platform {
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(245, 158, 11, 0.03) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+        }
+
+        .aws-header {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%);
+            color: #059669;
+        }
+
+        .platform-content {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ocp-platform .platform-content {
+            justify-content: space-around;
+        }
+
+        /* Architecture nodes */
+        .arch-node {
+            padding: 14px 18px;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .arch-node:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .arch-node-icon {
+            font-size: 1.6rem;
+        }
+
+        .node-subtitle {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+            font-weight: 400;
+        }
+
+        /* OCP nodes */
+        .ocp-node {
+            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        /* AWS Lambda nodes */
+        .lambda-node {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Storage nodes */
+        .storage-node {
+            background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .dynamodb-node {
+            background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .s3-node {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+        }
+
+        /* Stage 2 specific nodes */
+        .cron-node {
+            background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);
+            box-shadow: 0 4px 20px rgba(236, 72, 153, 0.3);
+        }
+
+        .scanner-node {
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .sqs-arch-node {
+            background: linear-gradient(135deg, #FF6B6B 0%, #EE5A5A 100%);
+            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
+        }
+
+        .sfn-node {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+        }
+
+        .poller-node {
+            background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+            position: relative;
+        }
+
+        .polling-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #FCD34D;
+            color: #92400E;
+            font-size: 0.6rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .fargate-node {
+            background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
+            box-shadow: 0 4px 20px rgba(20, 184, 166, 0.3);
+        }
+
+        /* Stage sections */
+        .stage-section {
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
+
+        .stage1-section {
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+        }
+
+        .stage2-section {
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.15);
+        }
+
+        .stage-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stage-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stage1-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+        }
+
+        .stage2-badge {
+            background: rgba(245, 158, 11, 0.15);
+            color: #D97706;
+        }
+
+        .stage-name {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .stage-nodes {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .stage2-nodes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 12px;
+        }
+
+        .stage-arrow {
+            display: flex;
+            align-items: center;
+            margin-top: 16px;
+            padding: 0 10px;
+        }
+
+        .arrow-line {
+            flex: 1;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.4) 0%, rgba(16, 185, 129, 0.1) 100%);
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .stage2-arrow .arrow-line {
+            background: linear-gradient(90deg, rgba(245, 158, 11, 0.4) 0%, rgba(245, 158, 11, 0.1) 100%);
+        }
+
+        .arrow-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: arrowMove 2s ease-in-out infinite;
+        }
+
+        .stage1-dot {
+            background: #10B981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .stage2-dot {
+            background: #F59E0B;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+            animation-duration: 3s;
+        }
+
+        @keyframes arrowMove {
+            0% { left: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { left: calc(100% - 10px); opacity: 0; }
+        }
+
+        /* Shared storage section */
+        .shared-storage {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(139, 92, 246, 0.04);
+            border-radius: 16px;
+            border: 1px dashed rgba(139, 92, 246, 0.2);
+            margin: 16px 0;
+            position: relative;
+        }
+
+        .storage-connector {
+            width: 40px;
+            height: 3px;
+            background: rgba(139, 92, 246, 0.25);
+            align-self: center;
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .storage-connector::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #8B5CF6;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: storagePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes storagePulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.5; }
+        }
+
+        /* Flow area between platforms */
+        .arch-flow-area {
+            position: relative;
+            width: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flow-svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .flow-path {
+            fill: none;
+            stroke: rgba(79, 70, 229, 0.15);
+            stroke-width: 2;
+        }
+
+        .path-stage1 {
+            stroke: rgba(16, 185, 129, 0.3);
+        }
+
+        .path-stage2 {
+            stroke: rgba(245, 158, 11, 0.3);
+        }
+
+        .path-dashed {
+            stroke-dasharray: 5, 5;
+        }
+
+        .flow-dot {
+            fill: #10B981;
+        }
+
+        .dot-stage1 {
+            fill: #10B981;
+            filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.6));
+        }
+
+        .dot-stage2 {
+            fill: #F59E0B;
+            filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.6));
+        }
+
+        .dot-a1 { animation: flowDot1 3s ease-in-out infinite; }
+        .dot-a2 { animation: flowDot2 3s ease-in-out infinite 0.5s; }
+        .dot-b1 { animation: flowDot3 4s ease-in-out infinite; }
+        .dot-b2 { animation: flowDot4 4s ease-in-out infinite 1s; }
+
+        @keyframes flowDot1 {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes flowDot2 {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes flowDot3 {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes flowDot4 {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .flow-labels {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: 30px 0;
+            pointer-events: none;
+        }
+
+        .flow-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-align: center;
+            white-space: nowrap;
+            background: var(--bg-card);
+            padding: 2px 6px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        /* Legend */
+        .arch-legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+        }
+
+        .stage1-color {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        }
+
+        .stage2-color {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        }
+
+        .storage-color {
+            background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+        }
+
+        /* Responsive for architecture diagram */
+        @media (max-width: 1000px) {
+            .arch-wrapper {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+            
+            .arch-flow-area {
+                display: none;
+            }
+            
+            .arch-platform {
+                max-width: 100%;
+            }
+            
+            .ocp-platform .platform-content {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .stage2-nodes {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .architecture-diagram-container {
+                padding: 25px 15px;
+            }
+            
+            .stage2-nodes {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .arch-legend {
+                gap: 15px;
+            }
+            
+            .legend-item {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <header>
+        <h1>📞 How We Capture Call Recordings</h1>
+        <p>A simple explanation of how our system ensures every call recording is safely captured and stored</p>
+    </header>
+
+    <nav class="nav-tabs">
+        <button class="nav-tab active" data-section="overview">
+            <span class="icon">🎯</span> Overview
+        </button>
+        <button class="nav-tab" data-section="paths">
+            <span class="icon">🛤️</span> Two Paths
+        </button>
+        <button class="nav-tab" data-section="why">
+            <span class="icon">❓</span> Why This Way
+        </button>
+        <button class="nav-tab" data-section="guarantees">
+            <span class="icon">✅</span> Guarantees
+        </button>
+    </nav>
+
+    <main class="content">
+        <!-- OVERVIEW SECTION -->
+        <section id="overview" class="section active">
+            <div class="analogy-card">
+                <span class="analogy-icon">📬</span>
+                <h2>Think of it Like a Post Office</h2>
+                <p>
+                    Imagine our call platform (OCP) is like a post office that handles packages (the call recordings). 
+                    Every time a call ends, that office needs to send us the "package" with the recording.
+                    <br><br>
+                    <strong>The challenge:</strong> Not all packages arrive on the first try. Sometimes there are delays, 
+                    network issues, or the office is simply too busy.
+                    <br><br>
+                    <strong>Our solution:</strong> We have <em>two ways</em> to receive packages, ensuring nothing gets lost.
+                </p>
+            </div>
+
+            <div class="animation-container">
+                <h3 style="font-family: 'Quicksand', sans-serif; font-size: 1.5rem; margin-bottom: 10px;">See It In Action</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">Watch how recordings flow from the call platform to our secure storage</p>
+                
+                <div class="animation-scene">
+                    <div class="animation-node node-ocp">
+                        <span class="icon">📞</span>
+                        <span>OCP</span>
+                    </div>
+                    <div class="animation-path">
+                        <span class="animation-label">Recording Transfer</span>
+                        <div class="animation-packet"></div>
+                    </div>
+                    <div class="animation-node node-system">
+                        <span class="icon">⚙️</span>
+                        <span>Our System</span>
+                    </div>
+                    <div class="animation-path">
+                        <span class="animation-label">Secure Storage</span>
+                        <div class="animation-packet" style="animation-delay: 1.5s;"></div>
+                    </div>
+                    <div class="animation-node node-storage">
+                        <span class="icon">🗄️</span>
+                        <span>Storage</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =============================================
+                 COMPLETE ARCHITECTURE DIAGRAM (End-to-End)
+                 ============================================= -->
+            <div class="architecture-diagram-container">
+                <h3 class="arch-title">🏗️ Complete System Architecture</h3>
+                <p class="arch-subtitle">How both paths work together to ensure 100% capture</p>
+                
+                <div class="arch-wrapper">
+                    <!-- OCP PLATFORM -->
+                    <div class="arch-platform ocp-platform">
+                        <div class="platform-header ocp-header">
+                            <span class="platform-icon">🌐</span>
+                            <span>OCP Platform (External)</span>
+                        </div>
+                        <div class="platform-content">
+                            <div class="arch-node ocp-node" id="node-start-call">
+                                <div class="arch-node-icon">📞</div>
+                                <span>Call Start</span>
+                            </div>
+                            <div class="arch-node ocp-node" id="node-end-call">
+                                <div class="arch-node-icon">📴</div>
+                                <span>Call End</span>
+                            </div>
+                            <div class="arch-node ocp-node" id="node-stream-audio">
+                                <div class="arch-node-icon">🎵</div>
+                                <span>Stream Audio</span>
+                            </div>
+                            <div class="arch-node ocp-node" id="node-export-api">
+                                <div class="arch-node-icon">📦</div>
+                                <span>Export API</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FLOW ARROWS AREA -->
+                    <div class="arch-flow-area">
+                        <!-- Stage 1 flows -->
+                        <svg class="flow-svg" viewBox="0 0 100 400" preserveAspectRatio="none">
+                            <!-- CDR Events arrow -->
+                            <path class="flow-path path-stage1" d="M 20 50 Q 50 80, 80 110" />
+                            <circle class="flow-dot dot-stage1 dot-a1" r="4" />
+                            
+                            <!-- Stream Audio arrow -->
+                            <path class="flow-path path-stage1" d="M 20 130 Q 50 150, 80 170" />
+                            <circle class="flow-dot dot-stage1 dot-a2" r="4" />
+                            
+                            <!-- Stage 2 flows -->
+                            <path class="flow-path path-stage2" d="M 80 280 Q 50 300, 20 320" />
+                            <circle class="flow-dot dot-stage2 dot-b1" r="4" />
+                            
+                            <path class="flow-path path-stage2 path-dashed" d="M 20 350 Q 50 360, 80 370" />
+                            <circle class="flow-dot dot-stage2 dot-b2" r="4" />
+                        </svg>
+                        
+                        <div class="flow-labels">
+                            <span class="flow-label label-cdr">CDR Events</span>
+                            <span class="flow-label label-stream">Push Audio</span>
+                            <span class="flow-label label-export">Export Job</span>
+                            <span class="flow-label label-pull">Pull Audio</span>
+                        </div>
+                    </div>
+
+                    <!-- AWS PLATFORM -->
+                    <div class="arch-platform aws-platform">
+                        <div class="platform-header aws-header">
+                            <span class="platform-icon">☁️</span>
+                            <span>AWS Ingestion Platform</span>
+                        </div>
+                        
+                        <div class="platform-content">
+                            <!-- STAGE 1 SECTION -->
+                            <div class="stage-section stage1-section">
+                                <div class="stage-header stage1-header">
+                                    <span class="stage-badge stage1-badge">Stage 1</span>
+                                    <span class="stage-name">Real-Time (~90%)</span>
+                                </div>
+                                <div class="stage-nodes">
+                                    <div class="arch-node aws-node lambda-node" id="node-event-lambda">
+                                        <div class="arch-node-icon">⚡</div>
+                                        <span>Event Processor</span>
+                                    </div>
+                                    <div class="arch-node aws-node lambda-node" id="node-stream-lambda">
+                                        <div class="arch-node-icon">λ</div>
+                                        <span>Ingestion API</span>
+                                    </div>
+                                </div>
+                                <div class="stage-arrow">
+                                    <div class="arrow-line"></div>
+                                    <div class="arrow-dot stage1-dot"></div>
+                                </div>
+                            </div>
+
+                            <!-- SHARED STORAGE -->
+                            <div class="shared-storage">
+                                <div class="arch-node storage-node dynamodb-node" id="node-dynamodb">
+                                    <div class="arch-node-icon">🗄️</div>
+                                    <span>DynamoDB</span>
+                                    <div class="node-subtitle">State Store</div>
+                                </div>
+                                <div class="storage-connector"></div>
+                                <div class="arch-node storage-node s3-node" id="node-s3">
+                                    <div class="arch-node-icon">📦</div>
+                                    <span>S3 Bucket</span>
+                                    <div class="node-subtitle">Final Storage</div>
+                                </div>
+                            </div>
+
+                            <!-- STAGE 2 SECTION -->
+                            <div class="stage-section stage2-section">
+                                <div class="stage-header stage2-header">
+                                    <span class="stage-badge stage2-badge">Stage 2</span>
+                                    <span class="stage-name">Reconciliation (~10%)</span>
+                                </div>
+                                <div class="stage-nodes stage2-nodes">
+                                    <div class="arch-node aws-node cron-node" id="node-cron">
+                                        <div class="arch-node-icon">⏰</div>
+                                        <span>EventBridge</span>
+                                        <div class="node-subtitle">Cron Trigger</div>
+                                    </div>
+                                    <div class="arch-node aws-node scanner-node" id="node-scanner">
+                                        <div class="arch-node-icon">🔍</div>
+                                        <span>Pull Missing</span>
+                                        <div class="node-subtitle">Call Files</div>
+                                    </div>
+                                    <div class="arch-node aws-node sqs-arch-node" id="node-sqs-arch">
+                                        <div class="arch-node-icon">📨</div>
+                                        <span>SQS</span>
+                                        <div class="node-subtitle">Queue</div>
+                                    </div>
+                                    <div class="arch-node aws-node sfn-node" id="node-sfn">
+                                        <div class="arch-node-icon">🔄</div>
+                                        <span>Step Functions</span>
+                                        <div class="node-subtitle">Orchestrator</div>
+                                    </div>
+                                    <div class="arch-node aws-node poller-node" id="node-poller">
+                                        <div class="arch-node-icon">🔁</div>
+                                        <span>Job Poller</span>
+                                        <div class="polling-badge">Polling</div>
+                                    </div>
+                                    <div class="arch-node aws-node fargate-node" id="node-fargate">
+                                        <div class="arch-node-icon">🐳</div>
+                                        <span>Fargate</span>
+                                        <div class="node-subtitle">Downloader</div>
+                                    </div>
+                                </div>
+                                <div class="stage-arrow stage2-arrow">
+                                    <div class="arrow-line"></div>
+                                    <div class="arrow-dot stage2-dot"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="arch-legend">
+                    <div class="legend-item">
+                        <div class="legend-color stage1-color"></div>
+                        <span>Stage 1: Real-Time Flow</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color stage2-color"></div>
+                        <span>Stage 2: Reconciliation Flow</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color storage-color"></div>
+                        <span>Shared Storage</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-icon">⚡</span>
+                    <div class="stat-value">90%</div>
+                    <div class="stat-label">Instant Delivery</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">🔄</span>
+                    <div class="stat-value">10%</div>
+                    <div class="stat-label">Recovery Process</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">🎯</span>
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">Total Capture Rate</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">🔒</span>
+                    <div class="stat-value">24/7</div>
+                    <div class="stat-label">Monitoring</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TWO PATHS SECTION -->
+        <section id="paths" class="section">
+            <div class="comparison-container">
+                <div class="comparison-card path-1">
+                    <div class="comparison-header">
+                        <div class="comparison-icon">🚀</div>
+                        <div class="comparison-title">
+                            <h3>Path 1: Instant Delivery</h3>
+                            <span>90% of all calls</span>
+                        </div>
+                    </div>
+                    <ul class="comparison-list">
+                        <li><span class="check">✓</span> Call ends</li>
+                        <li><span class="check">✓</span> OCP creates the audio file</li>
+                        <li><span class="check">✓</span> Sent to us automatically</li>
+                        <li><span class="check">✓</span> We save it immediately</li>
+                        <li><span class="time">⏱️</span> Takes: Seconds to minutes</li>
+                    </ul>
+                </div>
+
+                <div class="comparison-card path-2">
+                    <div class="comparison-header">
+                        <div class="comparison-icon">🔍</div>
+                        <div class="comparison-title">
+                            <h3>Path 2: Recovery</h3>
+                            <span>10% of all calls</span>
+                        </div>
+                    </div>
+                    <ul class="comparison-list">
+                        <li><span class="check">✓</span> Detect missing recordings</li>
+                        <li><span class="check">✓</span> Queue request to SQS</li>
+                        <li><span class="check">✓</span> Step Functions creates Export Job</li>
+                        <li><span class="check">✓</span> Poll OCP until file is ready</li>
+                        <li><span class="check">✓</span> Download & store in parallel</li>
+                        <li><span class="time">⏱️</span> Takes: Minutes to hours</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- PATH 1 VISUAL DIAGRAM -->
+            <div class="visual-flow-container path1-flow">
+                <h3 class="visual-flow-title">Path 1: The Fast Lane</h3>
+                <p class="visual-flow-subtitle">Automatic delivery in seconds</p>
+                
+                <div class="visual-flow-diagram">
+                    <div class="flow-node node-call">
+                        <div class="node-icon">📞</div>
+                        <span>Call Ends</span>
+                        <div class="node-glow"></div>
+                    </div>
+                    
+                    <div class="flow-connector">
+                        <div class="connector-line"></div>
+                        <div class="connector-dot dot-1"></div>
+                        <span class="connector-label">CDR Event</span>
+                    </div>
+                    
+                    <div class="flow-node node-ocp">
+                        <div class="node-icon">🎵</div>
+                        <span>OCP</span>
+                        <div class="node-glow"></div>
+                    </div>
+                    
+                    <div class="flow-connector">
+                        <div class="connector-line"></div>
+                        <div class="connector-dot dot-2"></div>
+                        <span class="connector-label">Streaming</span>
+                    </div>
+                    
+                    <div class="flow-node node-api">
+                        <div class="node-icon">⚡</div>
+                        <span>API</span>
+                        <div class="node-glow"></div>
+                    </div>
+                    
+                    <div class="flow-connector">
+                        <div class="connector-line"></div>
+                        <div class="connector-dot dot-3"></div>
+                        <span class="connector-label">Validate</span>
+                    </div>
+                    
+                    <div class="flow-node node-storage">
+                        <div class="node-icon">🗄️</div>
+                        <span>S3</span>
+                        <div class="node-glow"></div>
+                    </div>
+                </div>
+                
+                <div class="flow-time-badge">
+                    <span class="time-icon">⏱️</span>
+                    <span>Seconds to Minutes</span>
+                </div>
+            </div>
+
+            <div class="flow-container">
+                <div class="flow-title">
+                    <h2>Path 1: Step by Step</h2>
+                    <span class="badge badge-primary">The Fast Lane</span>
+                </div>
+
+                <div class="flow-steps">
+                    <div class="flow-step" style="--step-color: #10B981;" onclick="toggleStep(this)">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>📞 Call Ends</h3>
+                            <p>When a customer finishes their call, the platform detects it immediately.</p>
+                            <div class="step-detail">
+                                <div class="step-detail-content">
+                                    <p>Our system creates a record with a unique ID for this call, noting when it started, when it ended, and who the customer was.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="connector"></div>
+
+                    <div class="flow-step" style="--step-color: #3B82F6;" onclick="toggleStep(this)">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>🎵 Recording Created</h3>
+                            <p>OCP generates the audio file from the call.</p>
+                            <div class="step-detail">
+                                <div class="step-detail-content">
+                                    <p>The platform processes the raw audio, applies quality adjustments, and creates the final recording file.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="connector"></div>
+
+                    <div class="flow-step" style="--step-color: #8B5CF6;" onclick="toggleStep(this)">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>📤 Automatic Delivery</h3>
+                            <p>The file is sent to us instantly via streaming.</p>
+                            <div class="step-detail">
+                                <div class="step-detail-content">
+                                    <p>Like a messenger knocking on our door, OCP pushes the file directly to our system without us having to ask.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="connector"></div>
+
+                    <div class="flow-step" style="--step-color: #EC4899;" onclick="toggleStep(this)">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3>✅ Saved & Secured</h3>
+                            <p>We validate and store the recording permanently.</p>
+                            <div class="step-detail">
+                                <div class="step-detail-content">
+                                    <p>The file is checked for integrity, tagged with metadata, and stored in the appropriate secure location based on the business unit.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-container" style="margin-top: 60px;">
+                <div class="flow-title">
+                    <h2>Path 2: Step by Step</h2>
+                    <span class="badge badge-secondary">The Safety Net</span>
+                </div>
+
+                <!-- PATH 2 DETAILED VISUAL DIAGRAM -->
+                <div class="visual-flow-container path2-flow">
+                    <h3 class="visual-flow-title">Path 2: The Safety Net</h3>
+                    <p class="visual-flow-subtitle">Recovery process for missing files (~10% of cases)</p>
+                    
+                    <!-- PHASE 1: Detection -->
+                    <div class="path2-phase">
+                        <div class="phase-label">Phase 1: Detection</div>
+                        <div class="phase-flow">
+                            <div class="flow-node node-cron-trigger">
+                                <div class="node-icon">⏰</div>
+                                <span>Scheduler</span>
+                                <div class="node-badge">Every N min</div>
+                                <div class="node-glow"></div>
+                            </div>
+                            
+                            <div class="flow-connector">
+                                <div class="connector-line"></div>
+                                <div class="connector-dot dot-1 dot-slow"></div>
+                                <span class="connector-label">Trigger</span>
+                            </div>
+                            
+                            <div class="flow-node node-polling-lambda">
+                                <div class="node-icon">🔍</div>
+                                <span>Pull Missing</span>
+                                <span class="node-sublabel">Call Files</span>
+                                <div class="node-glow"></div>
+                            </div>
+                            
+                            <div class="flow-connector">
+                                <div class="connector-line"></div>
+                                <div class="connector-dot dot-2 dot-slow"></div>
+                                <span class="connector-label">Query</span>
+                            </div>
+                            
+                            <div class="flow-node node-dynamodb-check">
+                                <div class="node-icon">🗄️</div>
+                                <span>DynamoDB</span>
+                                <div class="node-badge warning">Missing files?</div>
+                                <div class="node-glow"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PHASE 2: Queue & Orchestration -->
+                    <div class="path2-phase">
+                        <div class="phase-label">Phase 2: Queue & Orchestration</div>
+                        <div class="phase-flow">
+                            <div class="flow-node node-polling-lambda-send">
+                                <div class="node-icon">📤</div>
+                                <span>Pull Missing</span>
+                                <span class="node-sublabel">Call Files</span>
+                                <div class="node-badge">Send Event</div>
+                                <div class="node-glow"></div>
+                            </div>
+                            
+                            <div class="flow-connector">
+                                <div class="connector-line"></div>
+                                <div class="connector-dot dot-2b dot-slow"></div>
+                                <span class="connector-label">Publish</span>
+                            </div>
+                            
+                            <div class="flow-node node-sqs">
+                                <div class="node-icon">📨</div>
+                                <span>SQS</span>
+                                <div class="node-badge">Queue</div>
+                                <div class="node-glow"></div>
+                                <div class="sqs-messages">
+                                    <div class="sqs-msg"></div>
+                                    <div class="sqs-msg"></div>
+                                    <div class="sqs-msg"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="flow-connector">
+                                <div class="connector-line"></div>
+                                <div class="connector-dot dot-3 dot-slow"></div>
+                                <span class="connector-label">Trigger</span>
+                            </div>
+                            
+                            <div class="flow-node node-sfn-start">
+                                <div class="node-icon">🚀</div>
+                                <span>Step Functions</span>
+                                <div class="node-badge success">Task Token</div>
+                                <div class="node-glow"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PHASE 3: Export Job Creation -->
+                    <div class="path2-phase">
+                        <div class="phase-label">Phase 3: Export Job Creation</div>
+                        <div class="phase-flow">
+                            <div class="flow-node node-sfn-export">
+                                <div class="node-icon">⚡</div>
+                                <span>Step Functions</span>
+                                <div class="node-glow"></div>
+                            </div>
+                            
+                            <div class="flow-connector">
+                                <div class="connector-line"></div>
+                                <div class="connector-dot dot-4 dot-slow"></div>
+                                <span class="connector-label">Create Job</span>
+                            </div>
+                            
+                            <div class="flow-node node-ocp-export">
+                                <div class="node-icon">📦</div>
+                                <span>OCP API</span>
+                                <div class="node-badge">Export Job</div>
+                                <div class="node-glow"></div>
+                            </div>
+                            
+                            <div class="flow-connector">
+                                <div class="connector-line"></div>
+                                <div class="connector-dot dot-5 dot-slow"></div>
+                                <span class="connector-label">Job ID</span>
+                            </div>
+                            
+                            <div class="flow-node node-eventbridge-wait">
+                                <div class="node-icon">⏳</div>
+                                <span>EventBridge</span>
+                                <div class="node-badge">Wait 5 min</div>
+                                <div class="node-glow"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PHASE 4: Polling Loop -->
+                    <div class="path2-phase phase-polling">
+                        <div class="phase-label">Phase 4: Polling Loop</div>
+                        <div class="polling-loop-container">
+                            <div class="polling-loop-visual">
+                                <div class="flow-node node-puller">
+                                    <div class="node-icon">🔁</div>
+                                    <span>Puller Lambda</span>
+                                    <div class="node-glow"></div>
+                                </div>
+                                
+                                <div class="polling-arrows">
+                                    <div class="polling-arrow arrow-out">
+                                        <span>Check Status</span>
+                                        <div class="arrow-dot-polling"></div>
+                                    </div>
+                                    <div class="flow-node node-ocp-status">
+                                        <div class="node-icon">📡</div>
+                                        <span>OCP API</span>
+                                        <div class="node-glow"></div>
+                                    </div>
+                                    <div class="polling-arrow arrow-in">
+                                        <span>Response</span>
+                                        <div class="arrow-dot-polling delay"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="polling-decision">
+                                    <div class="decision-box">
+                                        <span class="decision-icon">❓</span>
+                                        <span>Status?</span>
+                                    </div>
+                                    <div class="decision-paths">
+                                        <div class="decision-path path-not-ready">
+                                            <span class="path-label">IN_PROGRESS</span>
+                                            <div class="path-action">
+                                                <div class="action-icon">⏰</div>
+                                                <div class="action-details">
+                                                    <span class="action-title">Create EventBridge</span>
+                                                    <span class="action-desc">Schedule retry in N min</span>
+                                                </div>
+                                            </div>
+                                            <div class="path-arrow-loop">
+                                                <span>↩️</span>
+                                                <span class="loop-label">Loop back</span>
+                                            </div>
+                                        </div>
+                                        <div class="decision-path path-ready">
+                                            <span class="path-label">COMPLETED</span>
+                                            <div class="path-action">
+                                                <div class="action-icon">📤</div>
+                                                <div class="action-details">
+                                                    <span class="action-title">Send Callback</span>
+                                                    <span class="action-desc">Task Token → Step Functions</span>
+                                                </div>
+                                            </div>
+                                            <div class="path-arrow-continue">
+                                                <span>✅</span>
+                                                <span class="continue-label">Next Phase</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Visual flow explanation -->
+                            <div class="polling-flow-detail">
+                                <div class="flow-detail-item retry-detail">
+                                    <div class="detail-header">
+                                        <span class="detail-icon">🔄</span>
+                                        <span class="detail-title">If NOT Ready (Retry)</span>
+                                    </div>
+                                    <div class="detail-flow">
+                                        <div class="mini-node">Puller Lambda</div>
+                                        <div class="mini-arrow">→</div>
+                                        <div class="mini-node highlight-eventbridge">EventBridge</div>
+                                        <div class="mini-arrow">→</div>
+                                        <div class="mini-node">Wait N min</div>
+                                        <div class="mini-arrow">→</div>
+                                        <div class="mini-node">Puller Lambda</div>
+                                    </div>
+                                    <p class="detail-desc">Creates a scheduled event to check again later. The loop continues until max retries or completion.</p>
+                                </div>
+                                
+                                <div class="flow-detail-item complete-detail">
+                                    <div class="detail-header">
+                                        <span class="detail-icon">✅</span>
+                                        <span class="detail-title">If Ready (Complete)</span>
+                                    </div>
+                                    <div class="detail-flow">
+                                        <div class="mini-node">Puller Lambda</div>
+                                        <div class="mini-arrow">→</div>
+                                        <div class="mini-node highlight-callback">Callback API</div>
+                                        <div class="mini-arrow">→</div>
+                                        <div class="mini-node highlight-sfn">Step Functions</div>
+                                    </div>
+                                    <p class="detail-desc">Sends success callback with Task Token. Step Functions resumes and moves to parallel execution.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="polling-note">
+                                <span class="note-icon">💡</span>
+                                <span>OCP cannot notify us when ready — we must keep asking (this is a vendor limitation)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PHASE 5: Parallel Execution -->
+                    <div class="path2-phase">
+                        <div class="phase-label">Phase 5: Parallel Execution</div>
+                        <div class="parallel-container">
+                            <div class="parallel-header">
+                                <div class="flow-node node-sfn-parallel">
+                                    <div class="node-icon">⚡</div>
+                                    <span>Step Functions</span>
+                                    <div class="node-badge success">Parallel</div>
+                                    <div class="node-glow"></div>
+                                </div>
+                            </div>
+                            <div class="parallel-branches">
+                                <div class="parallel-branch branch-metadata">
+                                    <div class="branch-label">Branch A</div>
+                                    <div class="flow-node node-metadata-lambda">
+                                        <div class="node-icon">📋</div>
+                                        <span>Get Metadata</span>
+                                        <div class="node-glow"></div>
+                                    </div>
+                                    <div class="branch-arrow">↓</div>
+                                    <div class="flow-node node-store-metadata">
+                                        <div class="node-icon">💾</div>
+                                        <span>Store Info</span>
+                                        <div class="node-glow"></div>
+                                    </div>
+                                </div>
+                                <div class="parallel-divider">
+                                    <span>||</span>
+                                </div>
+                                <div class="parallel-branch branch-download">
+                                    <div class="branch-label">Branch B</div>
+                                    <div class="flow-node node-fargate">
+                                        <div class="node-icon">🐳</div>
+                                        <span>Fargate</span>
+                                        <div class="node-badge">Heavy Download</div>
+                                        <div class="node-glow"></div>
+                                    </div>
+                                    <div class="branch-arrow">↓</div>
+                                    <div class="flow-node node-process-file">
+                                        <div class="node-icon">⚙️</div>
+                                        <span>Process File</span>
+                                        <div class="node-glow"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PHASE 6: Completion -->
+                    <div class="path2-phase">
+                        <div class="phase-label">Phase 6: Completion</div>
+                        <div class="phase-flow completion-flow">
+                            <div class="flow-node node-callback">
+                                <div class="node-icon">📤</div>
+                                <span>Callback</span>
+                                <div class="node-badge success">Task Token</div>
+                                <div class="node-glow"></div>
+                            </div>
+                            
+                            <div class="flow-connector">
+                                <div class="connector-line"></div>
+                                <div class="connector-dot dot-5 dot-slow"></div>
+                                <span class="connector-label">Update</span>
+                            </div>
+                            
+                            <div class="flow-node node-dynamodb-final">
+                                <div class="node-icon">🗄️</div>
+                                <span>DynamoDB</span>
+                                <div class="node-badge success">Flags ✓</div>
+                                <div class="node-glow"></div>
+                            </div>
+                            
+                            <div class="flow-connector">
+                                <div class="connector-line"></div>
+                                <div class="connector-dot dot-6 dot-slow"></div>
+                                <span class="connector-label">Store</span>
+                            </div>
+                            
+                            <div class="flow-node node-s3-final">
+                                <div class="node-icon">✅</div>
+                                <span>S3</span>
+                                <div class="node-badge success">Complete!</div>
+                                <div class="node-glow"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flow-time-badge warning">
+                        <span class="time-icon">⏱️</span>
+                        <span>Minutes to Hours (depending on OCP)</span>
+                    </div>
+                </div>
+
+                <div class="flow-steps">
+                    <div class="flow-step" style="--step-color: #F59E0B;" onclick="toggleStep(this)">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>🔍 Detect Missing Files</h3>
+                            <p>The "Pull Missing Call Files" process scans for calls without recordings.</p>
+                            <div class="step-detail">
+                                <div class="step-detail-content">
+                                    <p>Every N minutes (configurable), we scan DynamoDB looking for calls that ended but don't have their audio file yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="connector"></div>
+
+                    <div class="flow-step" style="--step-color: #FF6B6B;" onclick="toggleStep(this)">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>📨 Queue the Request</h3>
+                            <p>Each missing file is sent as a message to an SQS queue.</p>
+                            <div class="step-detail">
+                                <div class="step-detail-content">
+                                    <p>SQS (Simple Queue Service) acts as a buffer, ensuring no request is lost and allowing Step Functions to process them at a controlled rate.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="connector"></div>
+
+                    <div class="flow-step" style="--step-color: #EF4444;" onclick="toggleStep(this)">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>📋 Request the File</h3>
+                            <p>Step Functions creates an Export Job in OCP.</p>
+                            <div class="step-detail">
+                                <div class="step-detail-content">
+                                    <p>We use OCP's Export API to create a "job" - like placing an order at a restaurant. OCP gives us a Job ID to track.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="connector"></div>
+
+                    <div class="flow-step" style="--step-color: #F97316;" onclick="toggleStep(this)">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3>⏳ Wait & Check (Polling Loop)</h3>
+                            <p>We periodically ask OCP "Is it ready yet?" until it's done.</p>
+                            <div class="step-detail">
+                                <div class="step-detail-content">
+                                    <p><strong>If IN_PROGRESS:</strong> The Puller Lambda creates a new EventBridge scheduled event to check again in N minutes. The loop continues.</p>
+                                    <p style="margin-top: 8px;"><strong>If COMPLETED:</strong> The Puller Lambda sends a callback to Step Functions using the Task Token. The orchestration resumes and moves to the next phase.</p>
+                                    <p style="margin-top: 8px; opacity: 0.7;"><em>This polling is necessary because OCP cannot push notifications to us.</em></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="connector"></div>
+
+                    <div class="flow-step" style="--step-color: #8B5CF6;" onclick="toggleStep(this)">
+                        <div class="step-number">5</div>
+                        <div class="step-content">
+                            <h3>⚡ Parallel Processing</h3>
+                            <p>Once ready, we download the file and get metadata simultaneously.</p>
+                            <div class="step-detail">
+                                <div class="step-detail-content">
+                                    <p>Step Functions runs two tasks in parallel: one Lambda gets metadata, while Fargate handles the heavy file download. This saves time.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="connector"></div>
+
+                    <div class="flow-step" style="--step-color: #10B981;" onclick="toggleStep(this)">
+                        <div class="step-number">6</div>
+                        <div class="step-content">
+                            <h3>✅ Complete & Store</h3>
+                            <p>The file is validated, stored in S3, and flags are updated.</p>
+                            <div class="step-detail">
+                                <div class="step-detail-content">
+                                    <p>Using callback tokens, the services notify Step Functions when done. DynamoDB is updated with final flags, and the call is fully reconciled.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- WHY THIS WAY SECTION -->
+        <section id="why" class="section">
+            <div class="disclaimer-card">
+                <div class="disclaimer-header">
+                    <span class="disclaimer-icon">⚠️</span>
+                    <h3>Important Context</h3>
+                </div>
+                <div class="disclaimer-content">
+                    <p>
+                        This architecture is designed around the <strong>specific capabilities and limitations of OCP</strong>, 
+                        our telephony platform vendor. The integration options that OCP offers are limited, and this solution 
+                        represents the <strong>best balance between cost, complexity, and reliability</strong>.
+                    </p>
+                </div>
+            </div>
+
+            <h2 style="font-family: 'Quicksand', sans-serif; font-size: 1.8rem; margin: 40px 0 20px;">What OCP Offers Us</h2>
+            
+            <div class="comparison-container">
+                <div class="comparison-card path-1">
+                    <div class="comparison-header">
+                        <div class="comparison-icon">📡</div>
+                        <div class="comparison-title">
+                            <h3>Real-time Streaming</h3>
+                            <span>Option 1</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-secondary); line-height: 1.7;">
+                        OCP sends the file automatically when the call ends. Works well 90% of the time, 
+                        but sometimes fails due to network issues or system load.
+                    </p>
+                </div>
+
+                <div class="comparison-card path-2">
+                    <div class="comparison-header">
+                        <div class="comparison-icon">📦</div>
+                        <div class="comparison-title">
+                            <h3>Export API (On Demand)</h3>
+                            <span>Option 2</span>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-secondary); line-height: 1.7;">
+                        We request the file manually. OCP prepares it and tells us when it's ready. 
+                        This is our backup for the remaining 10%.
+                    </p>
+                </div>
+            </div>
+
+            <div class="analogy-card" style="border-color: rgba(239, 68, 68, 0.3);">
+                <h2 style="color: var(--warning);">🚫 No Other Options Exist</h2>
+                <p>
+                    OCP does <strong>not</strong> offer additional mechanisms like:
+                </p>
+                <ul style="margin: 20px 0; padding-left: 24px; color: var(--text-secondary); line-height: 2;">
+                    <li>Automatic notifications when a file is ready</li>
+                    <li>Direct access to their database</li>
+                    <li>Scheduled batch synchronization</li>
+                    <li>Webhooks or push notifications</li>
+                </ul>
+            </div>
+
+            <div class="pizza-analogy">
+                <span class="icon">🍕</span>
+                <h3 style="font-family: 'Quicksand', sans-serif; margin-bottom: 12px;">The Pizza Analogy</h3>
+                <p>
+                    "Imagine ordering a pizza by phone, but the restaurant has no way to call you when it's ready. 
+                    Your only option is to call every 5 minutes asking: 'Is my pizza ready yet?'"
+                </p>
+                <p style="margin-top: 12px; font-style: normal; color: var(--text-primary);">
+                    <strong>This is exactly what happens with OCP's Export API.</strong> We must keep asking 
+                    until the file is ready because they can't notify us.
+                </p>
+            </div>
+
+            <h2 style="font-family: 'Quicksand', sans-serif; font-size: 1.8rem; margin: 40px 0 20px;">Alternatives We Evaluated</h2>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span class="icon">🔄</span>
+                    <h4>Continuous Polling</h4>
+                    <p><strong>Why not:</strong> Excessive costs. Thousands of unnecessary API calls. OCP might block us for abuse.</p>
+                </div>
+                <div class="summary-card">
+                    <span class="icon">📡</span>
+                    <h4>Streaming Only</h4>
+                    <p><strong>Why not:</strong> Would lose 10% of recordings. Unacceptable for compliance and auditing.</p>
+                </div>
+                <div class="summary-card">
+                    <span class="icon">📅</span>
+                    <h4>Daily Batch Download</h4>
+                    <p><strong>Why not:</strong> OCP doesn't offer this. Recordings would be 24+ hours delayed.</p>
+                </div>
+                <div class="summary-card">
+                    <span class="icon">🔌</span>
+                    <h4>Direct Database Access</h4>
+                    <p><strong>Why not:</strong> OCP doesn't allow it. Security risk for them.</p>
+                </div>
+                <div class="summary-card">
+                    <span class="icon">🤝</span>
+                    <h4>Third-party Middleware</h4>
+                    <p><strong>Why not:</strong> Significant extra cost. Would face the same OCP limitations.</p>
+                </div>
+                <div class="summary-card" style="background: rgba(16, 185, 129, 0.1); border-color: var(--secondary);">
+                    <span class="icon">✅</span>
+                    <h4>Smart Polling (Our Choice)</h4>
+                    <p><strong>Why this:</strong> Efficient, cost-controlled, handles OCP's limitations gracefully.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- GUARANTEES SECTION -->
+        <section id="guarantees" class="section">
+            <div class="analogy-card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 95, 70, 0.1) 100%); border-color: rgba(16, 185, 129, 0.3);">
+                <span class="analogy-icon">🛡️</span>
+                <h2 style="color: var(--secondary);">What This System Guarantees</h2>
+                <p>
+                    Despite the vendor's limitations, our design ensures robust, reliable, and auditable 
+                    capture of all call recordings.
+                </p>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span class="icon">🎯</span>
+                    <h4>100% Capture Rate</h4>
+                    <p>Path 2 (Recovery) acts as a safety net. No recording is ever lost.</p>
+                </div>
+                <div class="summary-card">
+                    <span class="icon">📋</span>
+                    <h4>Complete Traceability</h4>
+                    <p>Every call has a unique record documenting exactly when and how its recording was obtained.</p>
+                </div>
+                <div class="summary-card">
+                    <span class="icon">🔄</span>
+                    <h4>Failure Recovery</h4>
+                    <p>If something fails mid-process, the system can resume from where it left off without duplicating work.</p>
+                </div>
+                <div class="summary-card">
+                    <span class="icon">💰</span>
+                    <h4>Optimized Costs</h4>
+                    <p>Only 10% of calls need the recovery process, minimizing additional resource usage.</p>
+                </div>
+                <div class="summary-card">
+                    <span class="icon">🏢</span>
+                    <h4>Business Separation</h4>
+                    <p>Recordings are stored in separate repositories by business line, with controlled access.</p>
+                </div>
+                <div class="summary-card">
+                    <span class="icon">🔒</span>
+                    <h4>Security & Compliance</h4>
+                    <p>All files are encrypted and access is role-based. Full audit trail maintained.</p>
+                </div>
+            </div>
+
+            <div class="analogy-card" style="margin-top: 40px;">
+                <h2>📊 In Summary</h2>
+                <div style="margin-top: 20px;">
+                    <p style="margin-bottom: 16px;">
+                        <strong style="color: var(--primary-light);">1.</strong> OCP offers only two ways to get recordings: automatic streaming and manual export.
+                    </p>
+                    <p style="margin-bottom: 16px;">
+                        <strong style="color: var(--primary-light);">2.</strong> The Export API has a limitation: it can't notify us when files are ready. We must ask repeatedly.
+                    </p>
+                    <p style="margin-bottom: 16px;">
+                        <strong style="color: var(--primary-light);">3.</strong> We designed a system that works efficiently with these limitations, minimizing costs while ensuring no recording is lost.
+                    </p>
+                    <p style="margin-bottom: 16px;">
+                        <strong style="color: var(--primary-light);">4.</strong> All evaluated alternatives were more expensive, more complex, or simply impossible given OCP's restrictions.
+                    </p>
+                    <p>
+                        <strong style="color: var(--secondary);">5.</strong> This architecture represents the best possible balance between vendor capabilities, business requirements, and operational costs.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Audio File Ingestion System — Technical Overview for Business Stakeholders</p>
+    </footer>
+
+    <script>
+        // Tab navigation
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Update active tab
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Show corresponding section
+                const sectionId = tab.dataset.section;
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.getElementById(sectionId).classList.add('active');
+                
+                // Scroll to top of content
+                window.scrollTo({ top: 200, behavior: 'smooth' });
+            });
+        });
+
+        // Flow step toggle
+        function toggleStep(element) {
+            const wasActive = element.classList.contains('active');
+            
+            // Close all steps first
+            document.querySelectorAll('.flow-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            
+            // Toggle clicked step
+            if (!wasActive) {
+                element.classList.add('active');
+            }
+        }
+
+        // Add entrance animations on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.stat-card, .comparison-card, .summary-card, .flow-step').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+
+        // Architecture diagram node highlighting
+        document.querySelectorAll('.arch-node').forEach(node => {
+            node.addEventListener('mouseenter', () => {
+                // Add glow effect
+                node.style.boxShadow = node.style.boxShadow.replace('0.3)', '0.6)');
+                node.style.transform = 'scale(1.08)';
+            });
+            
+            node.addEventListener('mouseleave', () => {
+                node.style.boxShadow = node.style.boxShadow.replace('0.6)', '0.3)');
+                node.style.transform = 'scale(1)';
+            });
+        });
+
+        // Animate architecture nodes on scroll
+        const archObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const nodes = entry.target.querySelectorAll('.arch-node');
+                    nodes.forEach((node, index) => {
+                        setTimeout(() => {
+                            node.style.opacity = '1';
+                            node.style.transform = 'translateY(0) scale(1)';
+                        }, index * 100);
+                    });
+                }
+            });
+        }, { threshold: 0.2 });
+
+        document.querySelectorAll('.architecture-diagram-container').forEach(container => {
+            container.querySelectorAll('.arch-node').forEach(node => {
+                node.style.opacity = '0';
+                node.style.transform = 'translateY(20px) scale(0.9)';
+                node.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            });
+            archObserver.observe(container);
+        });
+
+        // Visual flow diagram animations on scroll
+        const flowObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const nodes = entry.target.querySelectorAll('.flow-node');
+                    nodes.forEach((node, index) => {
+                        setTimeout(() => {
+                            node.style.opacity = '1';
+                            node.style.transform = 'translateY(0) scale(1)';
+                        }, index * 150);
+                    });
+                }
+            });
+        }, { threshold: 0.3 });
+
+        document.querySelectorAll('.visual-flow-container').forEach(container => {
+            container.querySelectorAll('.flow-node').forEach(node => {
+                node.style.opacity = '0';
+                node.style.transform = 'translateY(15px) scale(0.95)';
+                node.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            });
+            flowObserver.observe(container);
+        });
+    </script>
+</body>
+</html>
