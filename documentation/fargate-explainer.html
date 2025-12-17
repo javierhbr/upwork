@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fargate ArchViz</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for the Radar Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom Animations */
+        @keyframes flowToWorker {
+            0% { left: 15%; top: 45%; opacity: 0; }
+            10% { left: 15%; top: 45%; opacity: 1; }
+            40% { left: 40%; top: 45%; }
+            50% { left: 40%; top: 45%; } 
+            100% { left: 70%; top: 30%; opacity: 0; }
+        }
+        @keyframes flowToOverflow {
+             0% { left: 15%; top: 45%; opacity: 0; }
+             10% { left: 15%; top: 45%; opacity: 1; }
+             40% { left: 40%; top: 45%; }
+             50% { left: 40%; top: 45%; }
+             100% { left: 70%; top: 70%; opacity: 0; }
+        }
+        .dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .dot-green {
+            background-color: #22c55e;
+            animation: flowToWorker 2s linear forwards;
+        }
+        .dot-red {
+            background-color: #ef4444;
+            animation: flowToOverflow 2s linear forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-900 pb-20">
+
+    <!-- Navigation -->
+    <nav class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2 font-bold text-xl">
+                <!-- Server Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+                <span>Fargate Arch<span class="text-blue-400">Viz</span></span>
+            </div>
+            <div class="flex gap-1 md:gap-4 overflow-x-auto pb-1 md:pb-0" id="nav-buttons">
+                <button onclick="switchTab('overview')" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap bg-blue-600 text-white" data-tab="overview">Overview</button>
+                <button onclick="switchTab('hybrid')" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800" data-tab="hybrid">Hybrid Deep Dive</button>
+                <button onclick="switchTab('comparison')" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800" data-tab="comparison">Comparison</button>
+                <button onclick="switchTab('decision')" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800" data-tab="decision">Decision Matrix</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-4 md:p-8">
+
+        <!-- TAB: OVERVIEW -->
+        <div id="view-overview" class="tab-content block space-y-8">
+            <div class="text-center max-w-2xl mx-auto mb-8">
+                <h2 class="text-3xl font-bold text-slate-900 mb-3">Architecture Options</h2>
+                <p class="text-slate-600">
+                    Exploring four strategies to handle 100k+ events/day with variable job durations on AWS Fargate.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Option 1 -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-3 rounded-lg bg-blue-100 text-blue-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-slate-800">Monolithic</h3>
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-500 uppercase tracking-wide">Baseline</span>
+                        </div>
+                    </div>
+                    <div class="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100 min-h-[160px] flex flex-col items-center justify-center gap-2">
+                        <div class="border-2 border-slate-400 rounded p-4 bg-white w-48 text-center relative">
+                            <span class="absolute -top-3 left-2 bg-white px-1 text-xs text-slate-400">Fargate Task</span>
+                            <div class="text-xs font-bold mb-2">Main Thread</div>
+                            <div class="text-[10px] bg-slate-100 p-1 rounded">Poll → Process → Upload</div>
+                        </div>
+                        <svg class="rotate-90 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                        <div class="border border-orange-400 bg-orange-50 px-4 py-1 rounded text-xs text-orange-600 font-mono">SQS</div>
+                    </div>
+                    <p class="text-slate-600 text-sm mb-4">Single task handling SQS polling, processing, and uploading sequentially.</p>
+                    <div class="space-y-2 text-xs text-slate-500">
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> Simplest implementation</div>
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> No CPU isolation</div>
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> Blocked main thread</div>
+                    </div>
+                </div>
+
+                <!-- Option 2 -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-3 rounded-lg bg-green-100 text-green-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16.02 12 5.48 3.13a1 1 0 0 1 .49.87v5a1 1 0 0 1-1 1h-16a1 1 0 0 1-1-1v-5a1 1 0 0 1 .49-.87l5.48-3.13a1 1 0 0 1 1.06 0L16.02 12z"/><path d="M12 12V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1z"/><path d="M20 12h-8"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-slate-800">Two Separate Services</h3>
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-500 uppercase tracking-wide">Recommended for Reliability</span>
+                        </div>
+                    </div>
+                    <div class="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100 min-h-[160px] flex items-center justify-center gap-2">
+                        <div class="flex flex-col items-center">
+                            <div class="border-2 border-blue-400 rounded p-2 bg-white w-24 text-center text-[10px]">
+                                <div class="font-bold">Orchestrator</div>
+                                <div class="text-slate-400">Light</div>
+                            </div>
+                            <svg class="rotate-90 text-slate-400 h-4" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                            <div class="border border-orange-400 bg-orange-50 px-2 py-0.5 rounded text-[10px] text-orange-600">SQS 1</div>
+                        </div>
+                        <svg class="text-slate-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                        <div class="flex flex-col items-center">
+                            <div class="border-2 border-purple-400 rounded p-2 bg-white w-24 text-center text-[10px]">
+                                <div class="font-bold">Worker</div>
+                                <div class="text-slate-400">Heavy</div>
+                            </div>
+                            <svg class="rotate-90 text-slate-400 h-4" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                            <div class="border border-orange-400 bg-orange-50 px-2 py-0.5 rounded text-[10px] text-orange-600">SQS 2</div>
+                        </div>
+                    </div>
+                    <p class="text-slate-600 text-sm mb-4">Decouples orchestration from processing. Heavy workers run independently.</p>
+                    <div class="space-y-2 text-xs text-slate-500">
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> Total isolation (Process & Memory)</div>
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> Scale independently</div>
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> Higher operational complexity</div>
+                    </div>
+                </div>
+
+                <!-- Option 3 -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-3 rounded-lg bg-blue-100 text-blue-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-slate-800">Single Service, Two Consumers</h3>
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-500 uppercase tracking-wide">Resource Risky</span>
+                        </div>
+                    </div>
+                    <div class="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100 min-h-[160px] flex flex-col items-center justify-center gap-2">
+                        <div class="border-2 border-slate-400 rounded p-2 bg-white w-48 text-center relative flex gap-2 justify-center">
+                            <span class="absolute -top-3 left-2 bg-white px-1 text-xs text-slate-400">Fargate Task</span>
+                            <div class="border border-dashed border-slate-300 p-2 text-[10px] flex-1">Cons 1</div>
+                            <div class="border border-dashed border-slate-300 p-2 text-[10px] flex-1">Cons 2</div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="border border-orange-400 bg-orange-50 px-2 py-0.5 rounded text-[10px] text-orange-600">SQS 1</div>
+                            <div class="border border-orange-400 bg-orange-50 px-2 py-0.5 rounded text-[10px] text-orange-600">SQS 2</div>
+                        </div>
+                    </div>
+                    <p class="text-slate-600 text-sm mb-4">Two processes in one task sharing CPU/RAM.</p>
+                    <div class="space-y-2 text-xs text-slate-500">
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> Simple deployment</div>
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> Resource contention</div>
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> No true isolation</div>
+                    </div>
+                </div>
+
+                <!-- Option 4 -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-3 rounded-lg bg-green-100 text-green-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-slate-800">Hybrid with Worker Pool</h3>
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-500 uppercase tracking-wide">Recommended for Efficiency</span>
+                        </div>
+                    </div>
+                    <div class="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100 min-h-[160px] flex items-center justify-center">
+                        <div class="flex flex-col items-center gap-2 w-full max-w-[240px]">
+                            <div class="border-2 border-indigo-500 rounded p-2 bg-white w-full text-center relative">
+                                <span class="absolute -top-3 left-2 bg-white px-1 text-xs text-indigo-500 font-bold">Hybrid Task</span>
+                                <div class="flex gap-2">
+                                    <div class="bg-indigo-50 p-2 rounded text-[10px] font-bold w-1/3 flex items-center justify-center">Main</div>
+                                    <div class="border border-indigo-200 p-1 rounded w-2/3 grid grid-cols-2 gap-1">
+                                        <div class="bg-green-100 h-4 rounded"></div>
+                                        <div class="bg-green-100 h-4 rounded"></div>
+                                        <div class="bg-green-100 h-4 rounded"></div>
+                                        <div class="bg-green-100 h-4 rounded"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex w-full justify-between px-2">
+                                <div class="flex flex-col items-center">
+                                    <svg class="rotate-90 text-slate-400 h-4" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                                    <div class="border border-orange-400 bg-orange-50 px-2 py-0.5 rounded text-[10px] text-orange-600">SQS 1</div>
+                                </div>
+                                <div class="flex flex-col items-center opacity-50">
+                                    <svg class="rotate-90 text-slate-400 h-4" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                                    <div class="border border-orange-400 bg-orange-50 px-2 py-0.5 rounded text-[10px] text-orange-600">Overflow</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-slate-600 text-sm mb-4">Main thread orchestrates, worker threads process. Overflow goes to SQS.</p>
+                    <div class="space-y-2 text-xs text-slate-500">
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> ~0ms Latency (Local)</div>
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> Complex logic</div>
+                        <div class="flex items-start gap-2"><span class="text-blue-500">✓</span> Overflow protection</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: HYBRID SIMULATOR -->
+        <div id="view-hybrid" class="tab-content hidden">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800">Hybrid Architecture Flow Simulator</h3>
+                        <p class="text-sm text-slate-500">Visualize decision logic: Local Worker vs. Overflow Queue</p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
+                        <button onclick="setSimLoad('normal')" id="btn-load-normal" class="px-3 py-1 rounded text-sm font-medium transition-all bg-white shadow text-blue-600">Normal Load</button>
+                        <button onclick="setSimLoad('high')" id="btn-load-high" class="px-3 py-1 rounded text-sm font-medium transition-all text-slate-500">High Load</button>
+                    </div>
+                </div>
+
+                <div id="sim-container" class="relative h-64 bg-slate-50 rounded-lg border border-slate-200 overflow-hidden p-4">
+                    <!-- Background Diagram -->
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div class="flex gap-8 items-center">
+                            <!-- Source -->
+                            <div class="w-16 h-16 bg-orange-100 border-2 border-orange-300 rounded-lg flex flex-col items-center justify-center z-10">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-orange-500 mb-1"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                                <span class="text-[10px] font-bold text-orange-700">SQS 1</span>
+                            </div>
+
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+
+                            <!-- Main Orchestrator -->
+                            <div class="w-24 h-24 bg-blue-100 border-2 border-blue-400 rounded-lg flex flex-col items-center justify-center z-10 relative">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500 mb-1"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                                <span class="text-[10px] font-bold text-blue-700 text-center">Main Thread<br/>(Orchestrator)</span>
+                                
+                                <div class="absolute -bottom-8 text-[10px] bg-slate-800 text-white px-2 py-0.5 rounded shadow">
+                                    Pool Full?
+                                </div>
+                            </div>
+
+                            <!-- Paths -->
+                            <div class="h-24 flex flex-col justify-between py-2">
+                                <div class="flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                                    <div class="w-48 h-20 bg-green-50 border-2 border-green-400 rounded-lg p-2 grid grid-cols-4 gap-2 z-10">
+                                        <div class="col-span-4 text-[10px] text-green-700 font-bold text-center border-b border-green-200 mb-1">Worker Pool (Threads)</div>
+                                        <div class="worker-box rounded bg-green-200"></div>
+                                        <div class="worker-box rounded bg-green-200"></div>
+                                        <div class="worker-box rounded bg-green-200"></div>
+                                        <div class="worker-box rounded bg-green-200"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="rotate-12"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                                    <div class="w-32 h-12 bg-red-50 border-2 border-red-300 rounded-lg flex items-center justify-center z-10 relative">
+                                        <span class="text-[10px] font-bold text-red-700">SQS 2 (Overflow)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Dots inserted via JS -->
+                </div>
+
+                <div class="mt-4 grid grid-cols-2 gap-4">
+                    <div class="bg-green-50 p-3 rounded-lg border border-green-100">
+                        <h4 class="font-bold text-green-800 text-sm mb-1">Green Path (Local)</h4>
+                        <p class="text-xs text-green-700">Latency: ~1ms. Used when workers are available. Main thread dispatches directly to a worker thread sharing memory space.</p>
+                    </div>
+                    <div class="bg-red-50 p-3 rounded-lg border border-red-100">
+                        <h4 class="font-bold text-red-800 text-sm mb-1">Red Path (Overflow)</h4>
+                        <p class="text-xs text-red-700">Latency: ~100ms. Used when pool is full. Request is sent to SQS 2 to be picked up later.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: COMPARISON -->
+        <div id="view-comparison" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Radar Chart -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">Architecture Trade-offs</h3>
+                    <div class="h-[300px] w-full flex justify-center">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <div class="text-xs text-center text-slate-500 mt-2">
+                        Hybrid excels in Latency & Simplicity. Two Services excels in Isolation & Resilience.
+                    </div>
+                </div>
+
+                <!-- Blast Radius Simulator -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-bold text-slate-800">Blast Radius Simulator</h3>
+                        <button onclick="toggleBlast()" id="btn-blast" class="px-3 py-1 text-sm rounded border bg-slate-100 border-slate-300 text-slate-600">Trigger Worker OOM</button>
+                    </div>
+
+                    <div class="flex-1 grid grid-cols-2 gap-4">
+                        <!-- Two Services Side -->
+                        <div class="border border-slate-200 rounded p-4 relative">
+                            <div class="absolute top-2 left-2 text-xs font-bold text-purple-600">Two Services</div>
+                            <div class="flex flex-col gap-4 mt-4 h-full justify-center">
+                                <div class="bg-blue-100 p-2 rounded border border-blue-300 text-center text-xs">
+                                    <span class="inline-block text-green-500 mr-1">✓</span>
+                                    Orchestrator Task
+                                </div>
+                                <div id="ts-worker" class="p-2 rounded border text-center text-xs transition-colors duration-500 bg-purple-100 border-purple-300">
+                                   <span id="ts-icon" class="inline-block text-purple-500 mr-1">⚡</span>
+                                   Worker Task
+                                </div>
+                            </div>
+                            <div id="ts-status" class="hidden mt-2 text-[10px] text-green-600 font-bold text-center bg-green-50 p-1 rounded">
+                                Orchestrator Unaffected ✅
+                            </div>
+                        </div>
+
+                        <!-- Hybrid Side -->
+                        <div class="border border-slate-200 rounded p-4 relative">
+                            <div class="absolute top-2 left-2 text-xs font-bold text-blue-600">Hybrid</div>
+                            <div id="hybrid-container" class="mt-4 border-2 rounded p-2 h-full flex flex-col justify-center transition-colors duration-500 border-blue-300 bg-blue-50">
+                                <div class="text-[10px] text-center mb-2 font-bold">Single Process</div>
+                                <div class="flex gap-1 justify-center">
+                                    <div class="w-8 h-8 bg-blue-200 rounded flex items-center justify-center text-[10px]">Main</div>
+                                    <div id="hybrid-worker" class="w-8 h-8 rounded flex items-center justify-center text-[10px] transition-colors duration-300 bg-green-200">W1</div>
+                                </div>
+                            </div>
+                            <div id="hybrid-status" class="hidden mt-2 text-[10px] text-red-600 font-bold text-center bg-red-100 p-1 rounded">
+                                Process Risk: Moderate ⚠️
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="mt-4 text-xs text-slate-500">
+                        <strong>Analysis:</strong> In "Two Services", an OOM crash is totally isolated. In "Hybrid", a severe memory leak affects the shared heap, potentially crashing the Orchestrator too.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: DECISION MATRIX -->
+        <div id="view-decision" class="tab-content hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-8">
+                    
+                    <!-- Controls -->
+                    <div class="md:col-span-2 space-y-8">
+                        <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                            Project Parameters
+                        </h3>
+                        
+                        <!-- Slider 1 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold text-slate-700">Job Duration Variance</label>
+                                <span id="label-duration" class="text-xs font-bold px-2 py-1 rounded bg-green-100 text-green-600">Medium</span>
+                            </div>
+                            <input type="range" id="input-duration" min="0" max="100" value="50" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            <p class="text-xs text-slate-500 mt-1">"The decisive factor." Long jobs saturate local pools, forcing overflow.</p>
+                        </div>
+
+                        <!-- Slider 2 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold text-slate-700">Daily Volume</label>
+                                <span id="label-volume" class="text-xs font-bold px-2 py-1 rounded bg-slate-100 text-slate-600">Low (&lt;10k)</span>
+                            </div>
+                            <input type="range" id="input-volume" min="0" max="100" value="50" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        </div>
+
+                        <!-- Slider 3 -->
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-semibold text-slate-700">Ops Complexity Tolerance</label>
+                                <span id="label-team" class="text-xs font-bold px-2 py-1 rounded bg-slate-100 text-slate-600">Low (Small Team)</span>
+                            </div>
+                            <input type="range" id="input-team" min="0" max="100" value="50" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        </div>
+                    </div>
+
+                    <!-- Scorecard -->
+                    <div class="bg-slate-50 rounded-xl p-6 flex flex-col justify-center items-center border border-slate-200">
+                        <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Recommendation</h4>
+                        
+                        <div class="w-full space-y-4 mb-8">
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium text-slate-600">Hybrid</span>
+                                <span id="score-hybrid" class="text-2xl font-bold text-slate-400">7.0</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium text-slate-600">Two Services</span>
+                                <span id="score-ts" class="text-2xl font-bold text-slate-400">7.0</span>
+                            </div>
+                        </div>
+
+                        <div id="winner-banner" class="w-full p-4 rounded-lg text-center font-bold text-white shadow-lg transition-colors duration-300 bg-blue-600">
+                            Hybrid
+                        </div>
+                        
+                        <div class="mt-4 flex gap-2 text-xs text-slate-500 bg-white p-2 rounded border border-slate-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            <p id="winner-desc">Best for simplicity & latency.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="text-center text-slate-400 text-sm mt-12">
+        Based on "Detailed Analysis: Hybrid Alternative with Worker Pool" • Fargate Architecture Decision Tool
+    </footer>
+
+    <!-- LOGIC -->
+    <script>
+        // --- Navigation ---
+        function switchTab(tabId) {
+            // Update buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if(btn.dataset.tab === tabId) {
+                    btn.classList.remove('text-slate-400', 'hover:text-white', 'hover:bg-slate-800');
+                    btn.classList.add('bg-blue-600', 'text-white');
+                } else {
+                    btn.classList.add('text-slate-400', 'hover:text-white', 'hover:bg-slate-800');
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                }
+            });
+
+            // Update Views
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+                content.classList.remove('block');
+            });
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            document.getElementById(`view-${tabId}`).classList.add('block');
+        }
+
+        // --- Hybrid Simulator ---
+        let simLoad = 'normal';
+        let simInterval;
+
+        function setSimLoad(load) {
+            simLoad = load;
+            const btnNormal = document.getElementById('btn-load-normal');
+            const btnHigh = document.getElementById('btn-load-high');
+            const workerBoxes = document.querySelectorAll('.worker-box');
+
+            if(load === 'normal') {
+                btnNormal.className = "px-3 py-1 rounded text-sm font-medium transition-all bg-white shadow text-blue-600";
+                btnHigh.className = "px-3 py-1 rounded text-sm font-medium transition-all text-slate-500";
+                workerBoxes.forEach(box => {
+                    box.classList.remove('bg-red-200', 'animate-pulse');
+                    box.classList.add('bg-green-200');
+                });
+            } else {
+                btnHigh.className = "px-3 py-1 rounded text-sm font-medium transition-all bg-white shadow text-red-600";
+                btnNormal.className = "px-3 py-1 rounded text-sm font-medium transition-all text-slate-500";
+                workerBoxes.forEach(box => {
+                    box.classList.remove('bg-green-200');
+                    box.classList.add('bg-red-200', 'animate-pulse');
+                });
+            }
+            
+            clearInterval(simInterval);
+            startSimulator();
+        }
+
+        function startSimulator() {
+            const container = document.getElementById('sim-container');
+            const intervalTime = simLoad === 'normal' ? 800 : 300;
+
+            simInterval = setInterval(() => {
+                const dot = document.createElement('div');
+                const isOverflow = simLoad === 'high' && Math.random() > 0.3;
+                
+                dot.className = `dot ${isOverflow ? 'dot-red' : 'dot-green'}`;
+                // Initial pos (approx)
+                dot.style.left = '10%';
+                dot.style.top = '40%';
+                
+                container.appendChild(dot);
+
+                // Remove after animation
+                setTimeout(() => {
+                    if(dot.parentNode) dot.parentNode.removeChild(dot);
+                }, 2000);
+
+            }, intervalTime);
+        }
+
+        // --- Comparison Chart ---
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        const radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Isolation', 'Simplicity', 'Scalability', 'Latency', 'Cost', 'Resilience'],
+                datasets: [{
+                    label: 'Hybrid',
+                    data: [40, 90, 80, 100, 80, 60],
+                    fill: true,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    pointBackgroundColor: 'rgb(59, 130, 246)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(59, 130, 246)'
+                }, {
+                    label: 'Two Services',
+                    data: [100, 50, 90, 60, 60, 100],
+                    fill: true,
+                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                    borderColor: 'rgb(139, 92, 246)',
+                    pointBackgroundColor: 'rgb(139, 92, 246)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(139, 92, 246)'
+                }]
+            },
+            options: {
+                elements: {
+                    line: { borderWidth: 3 }
+                },
+                scales: {
+                    r: {
+                        angleLines: { display: true },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                }
+            }
+        });
+
+        // --- Blast Radius Logic ---
+        let blastActive = false;
+        function toggleBlast() {
+            blastActive = !blastActive;
+            const btn = document.getElementById('btn-blast');
+            const tsWorker = document.getElementById('ts-worker');
+            const tsIcon = document.getElementById('ts-icon');
+            const tsStatus = document.getElementById('ts-status');
+            const hybridContainer = document.getElementById('hybrid-container');
+            const hybridWorker = document.getElementById('hybrid-worker');
+            const hybridStatus = document.getElementById('hybrid-status');
+
+            if (blastActive) {
+                btn.textContent = "Reset Simulation";
+                btn.className = "px-3 py-1 text-sm rounded border bg-red-100 border-red-300 text-red-700";
+                
+                // Two Services
+                tsWorker.className = "p-2 rounded border text-center text-xs transition-colors duration-500 bg-red-100 border-red-500";
+                tsIcon.className = "inline-block text-red-500 mr-1";
+                tsIcon.textContent = "✕";
+                tsStatus.classList.remove('hidden');
+
+                // Hybrid
+                hybridContainer.className = "mt-4 border-2 rounded p-2 h-full flex flex-col justify-center transition-colors duration-500 border-red-300 bg-red-50";
+                hybridWorker.className = "w-8 h-8 rounded flex items-center justify-center text-[10px] transition-colors duration-300 bg-red-500 text-white animate-pulse";
+                hybridStatus.classList.remove('hidden');
+
+            } else {
+                btn.textContent = "Trigger Worker OOM";
+                btn.className = "px-3 py-1 text-sm rounded border bg-slate-100 border-slate-300 text-slate-600";
+
+                // Reset TS
+                tsWorker.className = "p-2 rounded border text-center text-xs transition-colors duration-500 bg-purple-100 border-purple-300";
+                tsIcon.className = "inline-block text-purple-500 mr-1";
+                tsIcon.textContent = "⚡";
+                tsStatus.classList.add('hidden');
+
+                // Reset Hybrid
+                hybridContainer.className = "mt-4 border-2 rounded p-2 h-full flex flex-col justify-center transition-colors duration-500 border-blue-300 bg-blue-50";
+                hybridWorker.className = "w-8 h-8 rounded flex items-center justify-center text-[10px] transition-colors duration-300 bg-green-200";
+                hybridStatus.classList.add('hidden');
+            }
+        }
+
+        // --- Decision Matrix Logic ---
+        const iDuration = document.getElementById('input-duration');
+        const iVolume = document.getElementById('input-volume');
+        const iTeam = document.getElementById('input-team');
+        const lDuration = document.getElementById('label-duration');
+        const lVolume = document.getElementById('label-volume');
+        const lTeam = document.getElementById('label-team');
+
+        function calculateDecision() {
+            const dur = parseInt(iDuration.value);
+            const vol = parseInt(iVolume.value);
+            const team = parseInt(iTeam.value);
+
+            // Label Updates
+            if(dur > 60) {
+                lDuration.textContent = "High (Hours)";
+                lDuration.className = "text-xs font-bold px-2 py-1 rounded bg-red-100 text-red-600";
+            } else if (dur < 40) {
+                lDuration.textContent = "Predictable (Min)";
+                lDuration.className = "text-xs font-bold px-2 py-1 rounded bg-green-100 text-green-600";
+            } else {
+                lDuration.textContent = "Medium";
+                lDuration.className = "text-xs font-bold px-2 py-1 rounded bg-yellow-100 text-yellow-600";
+            }
+
+            lVolume.textContent = vol > 70 ? 'High (100k+)' : 'Low (<10k)';
+            lTeam.textContent = team > 50 ? 'High (Large Team)' : 'Low (Small Team)';
+
+            // Score Logic
+            let hybridScore = 7.0;
+            if (dur > 60) hybridScore -= 2.0;
+            else if (dur < 30) hybridScore += 1.5;
+
+            if (team < 40) hybridScore += 1.0;
+            else hybridScore -= 0.5;
+
+            let twoServicesScore = 7.0;
+            if (dur > 60) twoServicesScore += 2.0;
+            if (vol > 70) twoServicesScore += 1.0;
+
+            // Clamping
+            hybridScore = Math.min(10, Math.max(0, hybridScore)).toFixed(1);
+            twoServicesScore = Math.min(10, Math.max(0, twoServicesScore)).toFixed(1);
+
+            // Update UI
+            document.getElementById('score-hybrid').textContent = hybridScore;
+            document.getElementById('score-ts').textContent = twoServicesScore;
+
+            const hVal = parseFloat(hybridScore);
+            const tVal = parseFloat(twoServicesScore);
+            const winnerBanner = document.getElementById('winner-banner');
+            const scoreHybridTxt = document.getElementById('score-hybrid');
+            const scoreTsTxt = document.getElementById('score-ts');
+
+            scoreHybridTxt.className = `text-2xl font-bold ${hVal > tVal ? 'text-blue-600' : 'text-slate-400'}`;
+            scoreTsTxt.className = `text-2xl font-bold ${tVal > hVal ? 'text-purple-600' : 'text-slate-400'}`;
+
+            if(tVal > hVal) {
+                winnerBanner.textContent = "Two Services";
+                winnerBanner.className = "w-full p-4 rounded-lg text-center font-bold text-white shadow-lg transition-colors duration-300 bg-purple-600";
+                document.getElementById('winner-desc').textContent = "Best for isolation & long jobs.";
+            } else {
+                winnerBanner.textContent = "Hybrid";
+                winnerBanner.className = "w-full p-4 rounded-lg text-center font-bold text-white shadow-lg transition-colors duration-300 bg-blue-600";
+                document.getElementById('winner-desc').textContent = "Best for simplicity & latency.";
+            }
+        }
+
+        [iDuration, iVolume, iTeam].forEach(el => el.addEventListener('input', calculateDecision));
+
+        // Init
+        calculateDecision();
+        startSimulator();
+
+    </script>
+</body>
+</html>
