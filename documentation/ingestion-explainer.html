@@ -1203,6 +1203,12 @@
         }
         .node-metadata-lambda .node-glow, .node-store-metadata .node-glow { background: #06B6D4; }
 
+        .node-callback-service, .node-external-callback {
+            background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+        }
+        .node-callback-service .node-glow, .node-external-callback .node-glow { background: #8B5CF6; }
+
         .node-fargate, .node-process-file {
             background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
             box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
@@ -1229,10 +1235,296 @@
 
         /* Polling Loop Styles */
         .phase-polling {
-            background: rgba(239, 68, 68, 0.03);
-            border: 1px dashed rgba(239, 68, 68, 0.3);
+            background: rgba(245, 158, 11, 0.03);
+            border: 1px solid rgba(245, 158, 11, 0.2);
             border-radius: 20px;
+            padding: 25px;
+        }
+
+        .phase-description {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+        }
+
+        /* Step Functions Workflow Container */
+        .sfn-workflow-container {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+
+        .sfn-workflow-header {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .node-sfn-main {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.3);
+            width: 140px;
+            height: 100px;
+        }
+
+        .sfn-workflow-steps {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            position: relative;
+        }
+
+        .sfn-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .sfn-step-connector {
+            width: 3px;
+            height: 25px;
+            background: linear-gradient(to bottom, rgba(245, 158, 11, 0.4), rgba(245, 158, 11, 0.2));
+            position: relative;
+        }
+
+        .sfn-step-connector::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background: #F59E0B;
+            border-radius: 50%;
+            animation: stepPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes stepPulse {
+            0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; }
+            50% { transform: translateX(-50%) scale(1.3); opacity: 0.7; }
+        }
+
+        .sfn-step-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 16px 24px;
+            background: rgba(79, 70, 229, 0.05);
+            border: 1px solid rgba(79, 70, 229, 0.15);
+            border-radius: 14px;
+            position: relative;
+        }
+
+        .sfn-step-content.wait-state {
+            background: rgba(245, 158, 11, 0.08);
+            border-color: rgba(245, 158, 11, 0.25);
+        }
+
+        .sfn-step-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .lambda-icon {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        }
+
+        .wait-icon {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            font-size: 1.5rem;
+        }
+
+        .sfn-step-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .sfn-step-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .sfn-step-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .wait-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+            color: white;
+            font-size: 0.65rem;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+        }
+
+        /* SFN Decision */
+        .sfn-decision {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .sfn-decision-box {
+            background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
+            padding: 14px 24px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: #78350F;
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .sfn-decision-branches {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .sfn-branch {
             padding: 20px;
+            border-radius: 16px;
+            min-width: 180px;
+            text-align: center;
+        }
+
+        .branch-loop {
+            background: rgba(239, 68, 68, 0.06);
+            border: 2px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .branch-continue {
+            background: rgba(16, 185, 129, 0.06);
+            border: 2px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .branch-header {
+            margin-bottom: 12px;
+        }
+
+        .branch-status {
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .branch-loop .branch-status {
+            color: #DC2626;
+        }
+
+        .branch-continue .branch-status {
+            color: #059669;
+        }
+
+        .branch-action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .loop-arrow {
+            animation: loopBounce 1s ease-in-out infinite;
+        }
+
+        .continue-arrow {
+            animation: continuePulse 1s ease-in-out infinite;
+        }
+
+        .loop-visual {
+            margin-top: 10px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .loop-svg {
+            width: 50px;
+            height: 60px;
+            color: #EF4444;
+            opacity: 0.6;
+        }
+
+        /* Architecture Note */
+        .architecture-note {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .note-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .note-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .note-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .note-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .note-item.pro .item-icon {
+            color: #059669;
+        }
+
+        .note-item.warning .item-icon {
+            color: #D97706;
+        }
+
+        .item-icon {
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Lambda Check Node */
+        .lambda-check-node {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
         }
 
         .polling-loop-container {
@@ -1657,21 +1949,27 @@
                 transform: rotate(90deg);
             }
             
-            .polling-flow-detail {
+            .sfn-decision-branches {
                 flex-direction: column;
+                gap: 15px;
             }
             
-            .flow-detail-item {
-                max-width: 100%;
+            .sfn-branch {
+                min-width: auto;
+                width: 100%;
             }
             
-            .detail-flow {
-                gap: 5px;
+            .sfn-workflow-container {
+                padding: 20px 15px;
             }
             
-            .mini-node {
-                padding: 6px 10px;
-                font-size: 0.7rem;
+            .sfn-step-content {
+                padding: 12px 16px;
+            }
+            
+            .node-sfn-main {
+                width: 120px;
+                height: 85px;
             }
         }
 
@@ -2446,17 +2744,17 @@
                                     <div class="arch-node aws-node sfn-node" id="node-sfn">
                                         <div class="arch-node-icon">🔄</div>
                                         <span>Step Functions</span>
-                                        <div class="node-subtitle">Orchestrator</div>
+                                        <div class="node-subtitle">Wait States</div>
                                     </div>
-                                    <div class="arch-node aws-node poller-node" id="node-poller">
-                                        <div class="arch-node-icon">🔁</div>
-                                        <span>Job Poller</span>
-                                        <div class="polling-badge">Polling</div>
+                                    <div class="arch-node aws-node lambda-check-node" id="node-lambda-check">
+                                        <div class="arch-node-icon">λ</div>
+                                        <span>Check Status</span>
+                                        <div class="node-subtitle">Poll OCP</div>
                                     </div>
                                     <div class="arch-node aws-node fargate-node" id="node-fargate">
-                                        <div class="arch-node-icon">🐳</div>
-                                        <span>Fargate</span>
-                                        <div class="node-subtitle">Downloader</div>
+                                        <div class="arch-node-icon">📋</div>
+                                        <span>Get Metadata</span>
+                                        <div class="node-subtitle">+ Callback</div>
                                     </div>
                                 </div>
                                 <div class="stage-arrow stage2-arrow">
@@ -2540,9 +2838,9 @@
                     <ul class="comparison-list">
                         <li><span class="check">✓</span> Detect missing recordings</li>
                         <li><span class="check">✓</span> Queue request to SQS</li>
-                        <li><span class="check">✓</span> Step Functions creates Export Job</li>
-                        <li><span class="check">✓</span> Poll OCP until file is ready</li>
-                        <li><span class="check">✓</span> Download & store in parallel</li>
+                        <li><span class="check">✓</span> Step Functions with Wait States</li>
+                        <li><span class="check">✓</span> Native polling loop (no external scheduler)</li>
+                        <li><span class="check">✓</span> Parallel metadata + callback</li>
                         <li><span class="time">⏱️</span> Takes: Minutes to hours</li>
                     </ul>
                 </div>
@@ -2765,154 +3063,133 @@
                         </div>
                     </div>
 
-                    <!-- PHASE 3: Export Job Creation -->
-                    <div class="path2-phase">
-                        <div class="phase-label">Phase 3: Export Job Creation</div>
-                        <div class="phase-flow">
-                            <div class="flow-node node-sfn-export">
-                                <div class="node-icon">⚡</div>
-                                <span>Step Functions</span>
-                                <div class="node-glow"></div>
-                            </div>
-                            
-                            <div class="flow-connector">
-                                <div class="connector-line"></div>
-                                <div class="connector-dot dot-4 dot-slow"></div>
-                                <span class="connector-label">Create Job</span>
-                            </div>
-                            
-                            <div class="flow-node node-ocp-export">
-                                <div class="node-icon">📦</div>
-                                <span>OCP API</span>
-                                <div class="node-badge">Export Job</div>
-                                <div class="node-glow"></div>
-                            </div>
-                            
-                            <div class="flow-connector">
-                                <div class="connector-line"></div>
-                                <div class="connector-dot dot-5 dot-slow"></div>
-                                <span class="connector-label">Job ID</span>
-                            </div>
-                            
-                            <div class="flow-node node-eventbridge-wait">
-                                <div class="node-icon">⏳</div>
-                                <span>EventBridge</span>
-                                <div class="node-badge">Wait 5 min</div>
-                                <div class="node-glow"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- PHASE 4: Polling Loop -->
+                    <!-- PHASE 3: Export Job & Polling Loop -->
                     <div class="path2-phase phase-polling">
-                        <div class="phase-label">Phase 4: Polling Loop</div>
-                        <div class="polling-loop-container">
-                            <div class="polling-loop-visual">
-                                <div class="flow-node node-puller">
-                                    <div class="node-icon">🔁</div>
-                                    <span>Puller Lambda</span>
+                        <div class="phase-label">Phase 3: Export Job & Polling Loop</div>
+                        <p class="phase-description">Step Functions orchestrates the entire polling process with native Wait states</p>
+                        
+                        <div class="sfn-workflow-container">
+                            <div class="sfn-workflow-header">
+                                <div class="flow-node node-sfn-main">
+                                    <div class="node-icon">🔄</div>
+                                    <span>Step Functions</span>
+                                    <div class="node-badge success">Standard Workflow</div>
                                     <div class="node-glow"></div>
                                 </div>
-                                
-                                <div class="polling-arrows">
-                                    <div class="polling-arrow arrow-out">
-                                        <span>Check Status</span>
-                                        <div class="arrow-dot-polling"></div>
-                                    </div>
-                                    <div class="flow-node node-ocp-status">
-                                        <div class="node-icon">📡</div>
-                                        <span>OCP API</span>
-                                        <div class="node-glow"></div>
-                                    </div>
-                                    <div class="polling-arrow arrow-in">
-                                        <span>Response</span>
-                                        <div class="arrow-dot-polling delay"></div>
+                            </div>
+                            
+                            <div class="sfn-workflow-steps">
+                                <!-- Step 1: Create Export Job -->
+                                <div class="sfn-step">
+                                    <div class="sfn-step-connector"></div>
+                                    <div class="sfn-step-content">
+                                        <div class="sfn-step-icon lambda-icon">λ</div>
+                                        <div class="sfn-step-info">
+                                            <span class="sfn-step-name">Create Export Job</span>
+                                            <span class="sfn-step-desc">Call OCP API → Get Job ID</span>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <div class="polling-decision">
-                                    <div class="decision-box">
+                                <!-- Step 2: Wait State (Loop Start) -->
+                                <div class="sfn-step sfn-loop-start">
+                                    <div class="sfn-step-connector"></div>
+                                    <div class="sfn-step-content wait-state">
+                                        <div class="sfn-step-icon wait-icon">⏳</div>
+                                        <div class="sfn-step-info">
+                                            <span class="sfn-step-name">Wait State</span>
+                                            <span class="sfn-step-desc">Native 5 min wait</span>
+                                        </div>
+                                        <div class="wait-badge">Built-in</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Step 3: Check Status -->
+                                <div class="sfn-step">
+                                    <div class="sfn-step-connector"></div>
+                                    <div class="sfn-step-content">
+                                        <div class="sfn-step-icon lambda-icon">λ</div>
+                                        <div class="sfn-step-info">
+                                            <span class="sfn-step-name">Check Status</span>
+                                            <span class="sfn-step-desc">Query OCP Export API</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Decision: Status Check -->
+                                <div class="sfn-decision">
+                                    <div class="sfn-decision-box">
                                         <span class="decision-icon">❓</span>
                                         <span>Status?</span>
                                     </div>
-                                    <div class="decision-paths">
-                                        <div class="decision-path path-not-ready">
-                                            <span class="path-label">IN_PROGRESS</span>
-                                            <div class="path-action">
-                                                <div class="action-icon">⏰</div>
-                                                <div class="action-details">
-                                                    <span class="action-title">Create EventBridge</span>
-                                                    <span class="action-desc">Schedule retry in N min</span>
-                                                </div>
+                                    
+                                    <div class="sfn-decision-branches">
+                                        <div class="sfn-branch branch-loop">
+                                            <div class="branch-header">
+                                                <span class="branch-status">NOT_COMPLETED</span>
                                             </div>
-                                            <div class="path-arrow-loop">
-                                                <span>↩️</span>
-                                                <span class="loop-label">Loop back</span>
+                                            <div class="branch-action">
+                                                <span class="loop-arrow">↩️</span>
+                                                <span>Loop to Wait State</span>
+                                            </div>
+                                            <div class="loop-visual">
+                                                <svg class="loop-svg" viewBox="0 0 60 80">
+                                                    <path d="M 30 0 L 30 20 Q 30 40, 10 40 L 10 60 Q 10 75, 30 75" 
+                                                          fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4,4"/>
+                                                    <polygon points="25,70 30,80 35,70" fill="currentColor"/>
+                                                </svg>
                                             </div>
                                         </div>
-                                        <div class="decision-path path-ready">
-                                            <span class="path-label">COMPLETED</span>
-                                            <div class="path-action">
-                                                <div class="action-icon">📤</div>
-                                                <div class="action-details">
-                                                    <span class="action-title">Send Callback</span>
-                                                    <span class="action-desc">Task Token → Step Functions</span>
-                                                </div>
+                                        
+                                        <div class="sfn-branch branch-continue">
+                                            <div class="branch-header">
+                                                <span class="branch-status">COMPLETED</span>
                                             </div>
-                                            <div class="path-arrow-continue">
-                                                <span>✅</span>
-                                                <span class="continue-label">Next Phase</span>
+                                            <div class="branch-action">
+                                                <span class="continue-arrow">✅</span>
+                                                <span>Continue to Parallel</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Visual flow explanation -->
-                            <div class="polling-flow-detail">
-                                <div class="flow-detail-item retry-detail">
-                                    <div class="detail-header">
-                                        <span class="detail-icon">🔄</span>
-                                        <span class="detail-title">If NOT Ready (Retry)</span>
-                                    </div>
-                                    <div class="detail-flow">
-                                        <div class="mini-node">Puller Lambda</div>
-                                        <div class="mini-arrow">→</div>
-                                        <div class="mini-node highlight-eventbridge">EventBridge</div>
-                                        <div class="mini-arrow">→</div>
-                                        <div class="mini-node">Wait N min</div>
-                                        <div class="mini-arrow">→</div>
-                                        <div class="mini-node">Puller Lambda</div>
-                                    </div>
-                                    <p class="detail-desc">Creates a scheduled event to check again later. The loop continues until max retries or completion.</p>
-                                </div>
-                                
-                                <div class="flow-detail-item complete-detail">
-                                    <div class="detail-header">
-                                        <span class="detail-icon">✅</span>
-                                        <span class="detail-title">If Ready (Complete)</span>
-                                    </div>
-                                    <div class="detail-flow">
-                                        <div class="mini-node">Puller Lambda</div>
-                                        <div class="mini-arrow">→</div>
-                                        <div class="mini-node highlight-callback">Callback API</div>
-                                        <div class="mini-arrow">→</div>
-                                        <div class="mini-node highlight-sfn">Step Functions</div>
-                                    </div>
-                                    <p class="detail-desc">Sends success callback with Task Token. Step Functions resumes and moves to parallel execution.</p>
-                                </div>
-                            </div>
-                            
-                            <div class="polling-note">
+                        </div>
+                        
+                        <!-- Architecture benefits note -->
+                        <div class="architecture-note">
+                            <div class="note-header">
                                 <span class="note-icon">💡</span>
-                                <span>OCP cannot notify us when ready — we must keep asking (this is a vendor limitation)</span>
+                                <span class="note-title">Why Step Functions Wait States?</span>
                             </div>
+                            <div class="note-content">
+                                <div class="note-item pro">
+                                    <span class="item-icon">✓</span>
+                                    <span>Single service to monitor - all logic in one state machine</span>
+                                </div>
+                                <div class="note-item pro">
+                                    <span class="item-icon">✓</span>
+                                    <span>Complete visibility in Step Functions console</span>
+                                </div>
+                                <div class="note-item pro">
+                                    <span class="item-icon">✓</span>
+                                    <span>Native error handling with retries and timeouts</span>
+                                </div>
+                                <div class="note-item warning">
+                                    <span class="item-icon">⚠️</span>
+                                    <span>Cost consideration: Wait states charge per transition, not duration</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="polling-note">
+                            <span class="note-icon">💡</span>
+                            <span>OCP cannot notify us when ready — we must poll (this is a vendor limitation)</span>
                         </div>
                     </div>
 
-                    <!-- PHASE 5: Parallel Execution -->
+                    <!-- PHASE 4: Parallel Execution -->
                     <div class="path2-phase">
-                        <div class="phase-label">Phase 5: Parallel Execution</div>
+                        <div class="phase-label">Phase 4: Parallel Execution</div>
                         <div class="parallel-container">
                             <div class="parallel-header">
                                 <div class="flow-node node-sfn-parallel">
@@ -2942,16 +3219,15 @@
                                 </div>
                                 <div class="parallel-branch branch-download">
                                     <div class="branch-label">Branch B</div>
-                                    <div class="flow-node node-fargate">
-                                        <div class="node-icon">🐳</div>
-                                        <span>Fargate</span>
-                                        <div class="node-badge">Heavy Download</div>
+                                    <div class="flow-node node-callback-service">
+                                        <div class="node-icon">📤</div>
+                                        <span>Notify Service</span>
                                         <div class="node-glow"></div>
                                     </div>
                                     <div class="branch-arrow">↓</div>
-                                    <div class="flow-node node-process-file">
-                                        <div class="node-icon">⚙️</div>
-                                        <span>Process File</span>
+                                    <div class="flow-node node-external-callback">
+                                        <div class="node-icon">🔔</div>
+                                        <span>Callback</span>
                                         <div class="node-glow"></div>
                                     </div>
                                 </div>
@@ -2959,9 +3235,9 @@
                         </div>
                     </div>
 
-                    <!-- PHASE 6: Completion -->
+                    <!-- PHASE 5: Completion -->
                     <div class="path2-phase">
-                        <div class="phase-label">Phase 6: Completion</div>
+                        <div class="phase-label">Phase 5: Completion</div>
                         <div class="phase-flow completion-flow">
                             <div class="flow-node node-callback">
                                 <div class="node-icon">📤</div>
@@ -3027,7 +3303,7 @@
                             <p>Each missing file is sent as a message to an SQS queue.</p>
                             <div class="step-detail">
                                 <div class="step-detail-content">
-                                    <p>SQS (Simple Queue Service) acts as a buffer, ensuring no request is lost and allowing Step Functions to process them at a controlled rate.</p>
+                                    <p>SQS (Simple Queue Service) acts as a buffer, ensuring no request is lost and triggering Step Functions to process them.</p>
                                 </div>
                             </div>
                         </div>
@@ -3035,31 +3311,16 @@
 
                     <div class="connector"></div>
 
-                    <div class="flow-step" style="--step-color: #EF4444;" onclick="toggleStep(this)">
+                    <div class="flow-step" style="--step-color: #F59E0B;" onclick="toggleStep(this)">
                         <div class="step-number">3</div>
                         <div class="step-content">
-                            <h3>📋 Request the File</h3>
-                            <p>Step Functions creates an Export Job in OCP.</p>
+                            <h3>🔄 Step Functions Orchestration</h3>
+                            <p>Step Functions manages the entire polling loop with native Wait states.</p>
                             <div class="step-detail">
                                 <div class="step-detail-content">
-                                    <p>We use OCP's Export API to create a "job" - like placing an order at a restaurant. OCP gives us a Job ID to track.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="connector"></div>
-
-                    <div class="flow-step" style="--step-color: #F97316;" onclick="toggleStep(this)">
-                        <div class="step-number">4</div>
-                        <div class="step-content">
-                            <h3>⏳ Wait & Check (Polling Loop)</h3>
-                            <p>We periodically ask OCP "Is it ready yet?" until it's done.</p>
-                            <div class="step-detail">
-                                <div class="step-detail-content">
-                                    <p><strong>If IN_PROGRESS:</strong> The Puller Lambda creates a new EventBridge scheduled event to check again in N minutes. The loop continues.</p>
-                                    <p style="margin-top: 8px;"><strong>If COMPLETED:</strong> The Puller Lambda sends a callback to Step Functions using the Task Token. The orchestration resumes and moves to the next phase.</p>
-                                    <p style="margin-top: 8px; opacity: 0.7;"><em>This polling is necessary because OCP cannot push notifications to us.</em></p>
+                                    <p><strong>Create Export Job:</strong> Lambda calls OCP API to create an export job and gets a Job ID.</p>
+                                    <p style="margin-top: 8px;"><strong>Wait State:</strong> Built-in 5-minute wait (no external scheduler needed).</p>
+                                    <p style="margin-top: 8px;"><strong>Check Status:</strong> Lambda queries OCP API. If NOT_COMPLETED, loops back to Wait. If COMPLETED, continues to parallel execution.</p>
                                 </div>
                             </div>
                         </div>
@@ -3068,13 +3329,13 @@
                     <div class="connector"></div>
 
                     <div class="flow-step" style="--step-color: #8B5CF6;" onclick="toggleStep(this)">
-                        <div class="step-number">5</div>
+                        <div class="step-number">4</div>
                         <div class="step-content">
                             <h3>⚡ Parallel Processing</h3>
                             <p>Once ready, we download the file and get metadata simultaneously.</p>
                             <div class="step-detail">
                                 <div class="step-detail-content">
-                                    <p>Step Functions runs two tasks in parallel: one Lambda gets metadata, while Fargate handles the heavy file download. This saves time.</p>
+                                    <p>Step Functions runs two tasks in parallel: one Lambda gets metadata, while another notifies external services or triggers the download process.</p>
                                 </div>
                             </div>
                         </div>
@@ -3083,13 +3344,13 @@
                     <div class="connector"></div>
 
                     <div class="flow-step" style="--step-color: #10B981;" onclick="toggleStep(this)">
-                        <div class="step-number">6</div>
+                        <div class="step-number">5</div>
                         <div class="step-content">
                             <h3>✅ Complete & Store</h3>
                             <p>The file is validated, stored in S3, and flags are updated.</p>
                             <div class="step-detail">
                                 <div class="step-detail-content">
-                                    <p>Using callback tokens, the services notify Step Functions when done. DynamoDB is updated with final flags, and the call is fully reconciled.</p>
+                                    <p>DynamoDB is updated with final flags, and the call is fully reconciled. The entire workflow completes within the Step Functions execution.</p>
                                 </div>
                             </div>
                         </div>
