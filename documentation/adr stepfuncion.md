@@ -17,7 +17,7 @@ What is the most appropriate serverless AWS architecture to implement the audio 
 
 ## Options Considered
 
-### Option A: Step Functions with Native Wait States
+### Step Functions with Native Wait States
 
 Uses AWS Step Functions Standard Workflows with built-in Wait states to implement polling loops entirely within the state machine.
 
